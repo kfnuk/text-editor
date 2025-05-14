@@ -9,78 +9,96 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/fold/foldgutter.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/matchesonscrollbar.min.css"> <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/matchesonscrollbar.min.css">
+
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-container">
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                OPEN FILES
+        <div class="menu-bar-container">
+            <div class="menu-item" id="menu-file" role="button" aria-haspopup="true" aria-expanded="false">
+                <span id="menu-file-label">File</span>
+                <div class="dropdown-menu" role="menu" aria-labelledby="menu-file-label">
+                    <div class="dropdown-item" id="menu-new-file" role="menuitem">New File <span class="shortcut">(Ctrl+N)</span></div>
+                    <div class="dropdown-item" id="menu-open-file" role="menuitem">Open File... <span class="shortcut">(Ctrl+O)</span></div>
+                    <div class="dropdown-item" id="menu-save-file" role="menuitem">Save File <span class="shortcut">(Ctrl+S)</span></div>
+                </div>
             </div>
-            <ul class="file-list">
-                </ul>
-            <div class="sidebar-actions">
-                <button id="new-file-btn">New File</button>
-                <button id="open-file-btn">Open File</button>
-                <input type="file" id="file-input" style="display: none;">
-                <button id="save-file-btn">Save File</button>
+            <div class="menu-item" id="menu-edit" role="button" aria-haspopup="true" aria-expanded="false">
+                <span id="menu-edit-label">Edit</span>
+                <div class="dropdown-menu" role="menu" aria-labelledby="menu-edit-label">
+                    <div class="dropdown-item" id="menu-find" role="menuitem">Find... <span class="shortcut">(Ctrl+F)</span></div>
+                    <div class="dropdown-item" id="menu-replace" role="menuitem">Replace... <span class="shortcut">(Ctrl+H)</span></div>
+                    <div class="dropdown-separator" role="separator"></div>
+                    <div class="dropdown-item" id="menu-toggle-comment" role="menuitem">Toggle Comment <span class="shortcut">(Ctrl+/)</span></div>
+                </div>
+            </div>
+            <div class="menu-item" id="menu-view" role="button" aria-haspopup="true" aria-expanded="false">
+                <span id="menu-view-label">View</span>
+                <div class="dropdown-menu" role="menu" aria-labelledby="menu-view-label">
+                    <div class="dropdown-item" id="menu-toggle-theme" role="menuitem">Toggle Dark/Light Theme</div>
+                    </div>
             </div>
         </div>
-        <div class="resizer" id="sidebar-resizer"></div>
-        <div class="main-content">
-            <div class="tab-bar">
+
+        <div class="content-wrapper">
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    OPEN FILES
                 </div>
-            <div class="editor-area" id="editor-container">
+                <ul class="file-list" role="listbox" aria-label="Open files">
+                </ul>
+                <input type="file" id="file-input" style="display: none;" aria-hidden="true">
+            </div>
+            <div class="resizer" id="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar"></div>
+            <div class="main-content">
+                <div class="tab-bar" role="tablist" aria-label="Editor tabs">
                 </div>
-            <div class="status-bar">
-                 <div class="status-left">
-                    <span id="line-col-status">Line: 1, Column: 1</span>
+                <div class="editor-area" id="editor-container" role="region" aria-label="Code editor panel">
                 </div>
-                <div class="status-right">
-                    <span id="encoding-status">UTF-8</span>
-                    <span id="language-status">Text</span>
+                <div class="status-bar">
+                     <div class="status-left">
+                        <span id="line-col-status" role="status" aria-live="polite">Line: 1, Column: 1</span>
+                    </div>
+                    <div class="status-right">
+                        <span id="encoding-status">UTF-8</span>
+                        <span id="language-status" role="status" aria-live="polite">Text</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closebrackets.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/selection/active-line.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/fold/foldcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/fold/foldgutter.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/fold/brace-fold.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/fold/xml-fold.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/fold/indent-fold.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/fold/comment-fold.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/comment/comment.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror5.65.15/addon/hint/javascript-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/javascript-hint.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/xml-hint.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/html-hint.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/css-hint.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/searchcursor.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/search.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/jump-to-line.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/scroll/annotatescrollbar.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/matchesonscrollbar.min.js"></script>
-
 
     <script src="app.js"></script>
 </body>

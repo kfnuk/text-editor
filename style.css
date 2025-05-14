@@ -6,47 +6,195 @@
 }
 
 :root {
+    /* Default: Dark Theme Variables */
     --bg-color: #282c34;
     --sidebar-bg: #21252b;
-    --editor-bg: #2c313a;
+    --editor-bg: #2c313a; /* CodeMirror theme 'material-darker' uses this */
     --tab-bg: #3a3f4b;
     --tab-active-bg: var(--editor-bg);
     --tab-inactive-fg: #9da5b4;
     --status-bar-bg: #181a1f;
-    --text-color: #abb2bf;
-    --text-color-light: #d4d4d4;
-    --accent-color: #61afef;
+    --text-color: #abb2bf; /* Primary text color for dark theme */
+    --text-color-light: #d4d4d4; /* Lighter text (e.g., menu items) for dark theme */
+    --accent-color: #61afef; /* Accent for dark theme */
     --border-color: #181a1f;
+    --menu-bg: var(--sidebar-bg);
+    --menu-item-hover-bg: #3a3f4b;
+    --dropdown-bg: #2c313a;
+    --dropdown-item-hover-bg: var(--accent-color);
+    --dropdown-separator-color: #4a505a;
     --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --font-editor: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
+
+    /* CodeMirror specific colors for dark theme (material-darker) */
+    --cm-gutters-bg-dark: var(--editor-bg);
+    --cm-linenumber-color-dark: #6c788b;
+    --cm-cursor-color-dark: var(--accent-color);
+    --cm-selection-bg-dark: rgba(97, 175, 239, 0.3);
+    --cm-activeline-bg-dark: rgba(255, 255, 255, 0.05);
 }
+
+body.light-theme {
+    /* Light Theme Variable Overrides */
+    --bg-color: #f8f9fa; /* Light gray main background */
+    --sidebar-bg: #e9ecef; /* Slightly darker sidebar */
+    --editor-bg: #ffffff;  /* White editor background for CodeMirror 'default' theme */
+    --tab-bg: #dee2e6;
+    --tab-active-bg: var(--editor-bg);
+    --tab-inactive-fg: #495057;
+    --status-bar-bg: #ced4da;
+    --text-color: #212529; /* Dark primary text for light theme */
+    --text-color-light: #495057; /* Slightly lighter text for light theme */
+    --accent-color: #007bff; /* Blue accent for light theme */
+    --border-color: #adb5bd;
+    --menu-bg: var(--sidebar-bg);
+    --menu-item-hover-bg: #ced4da;
+    --dropdown-bg: #f8f9fa;
+    --dropdown-item-hover-bg: var(--accent-color);
+    --dropdown-separator-color: #ced4da;
+
+    /* CodeMirror specific colors for light theme ('default') */
+    --cm-gutters-bg-light: #f7f7f7; /* Default CM gutter color */
+    --cm-linenumber-color-light: #999; /* Default CM linenumber color */
+    --cm-cursor-color-light: var(--text-color); /* Or var(--accent-color) */
+    --cm-selection-bg-light: rgba(210, 210, 210, 0.4); /* Default CM selection */
+    --cm-activeline-bg-light: #e8f2ff; /* Default CM active line */
+}
+
 
 body {
     font-family: var(--font-main);
     background-color: var(--bg-color);
     color: var(--text-color);
-    overflow: hidden; /* Prevent scrollbars on the body itself */
+    overflow: hidden;
     height: 100vh;
     display: flex;
+    transition: background-color 0.3s, color 0.3s; /* Smooth theme transition */
 }
 
 .app-container {
     display: flex;
+    flex-direction: column;
     width: 100vw;
-    height: 100vh; /* Fill viewport */
+    height: 100vh;
 }
 
-/* Sidebar Styling */
+/* Menu Bar Styling */
+.menu-bar-container {
+    display: flex;
+    background-color: var(--menu-bg);
+    padding: 0 10px;
+    height: 30px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.menu-item {
+    padding: 0 10px;
+    cursor: pointer;
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+    color: var(--text-color-light); /* Uses text-color-light which changes with theme */
+    transition: background-color 0.3s;
+}
+
+.menu-item:hover,
+.menu-item.active {
+    background-color: var(--menu-item-hover-bg);
+}
+
+.menu-item > span {
+    pointer-events: none;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: var(--dropdown-bg);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 1000;
+    min-width: 220px; /* Adjusted for potentially longer theme toggle text */
+    padding: 5px 0;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.menu-item.active .dropdown-menu {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 8px 15px;
+    font-size: 0.85em;
+    color: var(--text-color-light);
+    white-space: nowrap;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--dropdown-item-hover-bg);
+    color: white; /* Text on hover usually becomes white or very light */
+    outline: none;
+}
+body.light-theme .dropdown-item:hover,
+body.light-theme .dropdown-item:focus {
+    color: #ffffff; /* Ensure text is white on accent blue for light theme */
+}
+
+
+.dropdown-item .shortcut {
+    color: var(--tab-inactive-fg); /* Use a color that adapts to theme */
+    margin-left: 20px;
+}
+.dropdown-item:hover .shortcut,
+.dropdown-item:focus .shortcut {
+    color: white; /* Assuming hover background makes white text readable */
+}
+body.light-theme .dropdown-item:hover .shortcut,
+body.light-theme .dropdown-item:focus .shortcut {
+    color: #ffffff;
+}
+
+
+.dropdown-separator {
+    height: 1px;
+    background-color: var(--dropdown-separator-color);
+    margin: 5px 0;
+    transition: background-color 0.3s;
+}
+
+.content-wrapper {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
 .sidebar {
-    /* width: 250px; /* Initial width set by JS */
-    min-width: 150px;
-    max-width: 500px;
     background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
-    padding: 10px 0;
+    padding-top: 10px;
     color: var(--text-color-light);
-    flex-shrink: 0; /* Does not shrink if content in main area grows */
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .sidebar-header {
@@ -56,13 +204,28 @@ body {
     color: var(--text-color);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid #333742;
+    border-bottom: 1px solid var(--border-color); /* Use theme-aware border color */
     margin-bottom: 5px;
+    flex-shrink: 0;
+    transition: color 0.3s, border-color 0.3s;
 }
+body.light-theme .sidebar-header {
+    border-bottom: 1px solid #ced4da; /* Specific light theme border */
+}
+
 
 .file-list {
     list-style: none;
-    overflow-y: auto; /* Allow sidebar file list to scroll if needed */
+    overflow-y: auto;
+    flex-grow: 1;
+    padding: 0;
+}
+.file-list:empty::before {
+    content: "No files open";
+    display: block;
+    padding: 10px 15px;
+    font-style: italic;
+    color: var(--tab-inactive-fg);
 }
 
 .file-item {
@@ -72,169 +235,213 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--text-color-light);
+    transition: background-color 0.3s, color 0.3s;
 }
-
-.file-item:hover {
-    background-color: #3a3f4b;
+.file-item:hover,
+.file-item:focus {
+    background-color: var(--menu-item-hover-bg); /* Use menu hover for consistency */
+    outline: none;
 }
-
 .file-item.active {
     background-color: var(--accent-color);
+    color: #ffffff; /* Ensure text on active is white for both themes */
+}
+body.light-theme .file-item.active {
     color: #ffffff;
 }
 
-.sidebar-actions {
-    padding: 10px 15px;
-    border-top: 1px solid #333742;
-    margin-top: auto; /* Pushes actions to the bottom */
-}
-
-.sidebar-actions button {
-    display: block;
-    width: 100%;
-    padding: 8px 10px;
-    margin-bottom: 8px;
-    background-color: var(--accent-color);
-    color: #ffffff;
-    border: none;
-    border-radius: 3px;
-    font-family: var(--font-main);
-    font-size: 0.9em;
-    cursor: pointer;
-}
-.sidebar-actions button:hover {
-    background-color: #529bda;
-}
-.sidebar-actions button:last-child {
-    margin-bottom: 0;
-}
-
-/* Resizer Handle Styling */
 .resizer {
     width: 5px;
     background-color: var(--border-color);
     cursor: col-resize;
     flex-shrink: 0;
     z-index: 10;
+    transition: background-color 0.3s;
 }
-.resizer:hover {
+.resizer:hover,
+.resizer:focus {
     background-color: var(--accent-color);
+    outline: none;
 }
 
-/* Main Content Area */
 .main-content {
-    flex-grow: 1; /* Takes remaining horizontal space */
+    flex-grow: 1;
     display: flex;
-    flex-direction: column; /* Arranges tab-bar, editor-area, status-bar vertically */
-    overflow: hidden; /* Prevents this container from scrolling if children overflow. Crucial. */
-    min-width: 0; /* Important for flex children that might want to overflow */
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
 }
 
-/* Tab Bar Styling */
 .tab-bar {
     display: flex;
-    background-color: var(--bg-color);
+    background-color: var(--bg-color); /* Tabs bar BG to match app BG */
     border-bottom: 1px solid var(--border-color);
-    flex-shrink: 0; /* Fixed height, does not shrink */
+    flex-shrink: 0;
+    overflow-x: auto;
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
 .tab {
     padding: 10px 15px;
     background-color: var(--tab-bg);
     color: var(--tab-inactive-fg);
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color); /* Themed border */
     cursor: pointer;
     font-size: 0.85em;
     position: relative;
-    min-width: 100px;
+    min-width: 120px;
+    max-width: 250px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
-.tab:not(.active):hover {
-    background-color: #4a4f5a;
+body.light-theme .tab {
+    border-right: 1px solid #adb5bd; /* Specific light theme border for tabs */
+}
+
+.tab:not(.active):hover,
+.tab:not(.active):focus {
+    background-color: var(--menu-item-hover-bg); /* Use menu hover color */
+    outline: none;
 }
 .tab.active {
     background-color: var(--tab-active-bg);
-    color: var(--text-color-light);
-    position: relative;
+    color: var(--text-color); /* Active tab text matches primary text color */
 }
 .tab .tab-filename {
     flex-grow: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-right: 5px;
 }
 .tab .dirty-indicator {
-    margin-left: 5px;
-    margin-right: -5px;
-    display: inline-block;
+    margin-left: auto;
+    margin-right: 5px;
     width: 8px;
     height: 8px;
     background-color: var(--accent-color);
     border-radius: 50%;
     opacity: 0.7;
+    flex-shrink: 0;
 }
 .close-tab {
-    margin-left: 10px;
+    margin-left: 5px;
     font-weight: bold;
-    padding: 2px 4px;
+    padding: 1px 4px;
     border-radius: 3px;
-    font-size: 0.9em;
+    font-size: 1em;
     line-height: 1;
+    flex-shrink: 0;
+    color: var(--tab-inactive-fg); /* Use themed color */
 }
-.close-tab:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: #fff;
+.close-tab:hover,
+.close-tab:focus {
+    background-color: rgba(0,0,0,0.1); /* Subtle dark overlay */
+    color: var(--text-color); /* Themed color */
+    outline: none;
+}
+body.light-theme .close-tab:hover,
+body.light-theme .close-tab:focus {
+    background-color: rgba(0,0,0,0.08); /* Lighter subtle overlay */
 }
 
-/* Editor Area Styling */
+
 .editor-area {
-    flex-grow: 1; /* Takes all available vertical space in .main-content */
-    display: flex; /* Allows .CodeMirror to fill it */
+    flex-grow: 1;
+    display: flex;
     position: relative;
-    background-color: var(--editor-bg);
+    background-color: var(--editor-bg); /* Editor area BG to match CM theme BG */
     border-top: 2px solid transparent;
-    min-height: 0; /* CRUCIAL for allowing .CodeMirror to scroll internally within a flex item */
+    min-height: 0;
+    transition: background-color 0.3s, border-top-color 0.3s;
 }
 
 .editor-area.active-tab-indicator {
     border-top-color: var(--accent-color);
 }
 
-/* Styling for CodeMirror itself */
-.CodeMirror {
-    flex-grow: 1; /* Fill .editor-area horizontally */
-    height: 100%; /* Fill .editor-area vertically */
-    font-family: var(--font-editor) !important;
-    font-size: 1em !important;
-    line-height: 1.5 !important;
-    background-color: var(--editor-bg) !important;
-    color: var(--text-color-light) !important;
+/* CodeMirror main styling - now theme dependent through JS options */
+.CodeMirror { /* General CM structure, background/color set by theme option */
+    flex-grow: 1;
+    height: 100%;
+    font-family: var(--font-editor);
+    font-size: 1em;
+    line-height: 1.5;
 }
 
-/* Theme specific overrides for CodeMirror material-darker */
+/* Dark Theme: material-darker (styles mostly from its own CSS, with our overrides) */
 .cm-s-material-darker.CodeMirror {
-    background-color: var(--editor-bg);
-    color: var(--text-color-light);
+    background-color: #2c313a; /* Matching var(--editor-bg) for dark */
+    color: #abb2bf;    /* Matching var(--text-color) for dark */
 }
 .cm-s-material-darker .CodeMirror-gutters {
-    background-color: var(--editor-bg);
+    background-color: var(--cm-gutters-bg-dark);
     border-right: 1px solid #333742;
 }
 .cm-s-material-darker .CodeMirror-linenumber {
-    color: #6c788b;
+    color: var(--cm-linenumber-color-dark);
 }
 .cm-s-material-darker .CodeMirror-cursor {
-    border-left: 1px solid var(--accent-color) !important;
+    border-left-color: var(--cm-cursor-color-dark);
 }
 .cm-s-material-darker .CodeMirror-selected {
-    background: rgba(97, 175, 239, 0.2);
+    background: var(--cm-selection-bg-dark);
 }
 .cm-s-material-darker .CodeMirror-activeline-background {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--cm-activeline-bg-dark);
+}
+.cm-s-material-darker .cm-matchhighlight {
+    background-color: rgba(255, 255, 0, 0.2);
+}
+.cm-s-material-darker .CodeMirror-selection-highlight-scrollbar {
+  background-color: rgba(255, 229, 0, 0.4);
+}
+.cm-s-material-darker .CodeMirror-foldmarker {
+    color: var(--accent-color);
+    background-color: var(--tab-bg);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
 }
 
-/* Status Bar Styling */
+
+/* Light Theme: default (styles from its own CSS, some overrides for consistency) */
+.cm-s-default.CodeMirror { /* CodeMirror's default theme class */
+    background-color: #ffffff; /* Matching var(--editor-bg) for light */
+    color: #212529;     /* Matching var(--text-color) for light */
+}
+.cm-s-default .CodeMirror-gutters {
+    background-color: var(--cm-gutters-bg-light);
+    border-right: 1px solid #dee2e6; /* Light border */
+}
+.cm-s-default .CodeMirror-linenumber {
+    color: var(--cm-linenumber-color-light);
+}
+.cm-s-default .CodeMirror-cursor {
+    border-left-color: var(--cm-cursor-color-light); /* Black cursor for default theme */
+}
+.cm-s-default .CodeMirror-selected {
+    background: var(--cm-selection-bg-light);
+}
+.cm-s-default .CodeMirror-activeline-background {
+    background: var(--cm-activeline-bg-light);
+}
+.cm-s-default .cm-matchhighlight {
+    background-color: #ffffa2; /* Brighter yellow for light theme */
+}
+.cm-s-default .CodeMirror-selection-highlight-scrollbar {
+  background-color: #f0f030;
+}
+.cm-s-default .CodeMirror-foldmarker {
+    color: var(--accent-color);
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+
 .status-bar {
     display: flex;
     justify-content: space-between;
@@ -244,8 +451,9 @@ body {
     color: var(--text-color);
     font-size: 0.8em;
     border-top: 1px solid var(--border-color);
-    flex-shrink: 0; /* Fixed height */
+    flex-shrink: 0;
     height: 25px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 .status-bar span {
     margin-left: 15px;
@@ -254,90 +462,83 @@ body {
     margin-left: 0;
 }
 
-/* Fold Gutter Styling */
-.cm-s-material-darker .CodeMirror-foldgutter-open:after {
-    color: #aaa;
-}
-.cm-s-material-darker .CodeMirror-foldgutter-folded:after {
-    color: var(--accent-color);
-}
-.CodeMirror-foldmarker {
-    color: var(--accent-color);
-    background-color: #3a3f4b;
-    border-color: #444;
-    cursor: pointer;
-}
 
-/* Hint Popup Styling */
-.CodeMirror-hints.material-darker {
-    background-color: #3a3f4b !important;
-    border: 1px solid var(--border-color) !important;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
-}
-.CodeMirror-hints.material-darker .CodeMirror-hint {
-    color: var(--text-color-light) !important;
-    padding: 4px 8px !important;
-}
-.CodeMirror-hints.material-darker .CodeMirror-hint-active {
-    background-color: var(--accent-color) !important;
-    color: #fff !important;
-}
-
-.file-list:empty::before {
-    content: "No files open";
-    display: block;
-    padding: 10px 15px;
-    font-style: italic;
-    color: var(--tab-inactive-fg);
-    text-align: center;
-}
-
-/* Search Dialog Styling - to match dark theme */
+/* CodeMirror Dialogs - Themed */
 .CodeMirror-dialog {
-    background-color: var(--sidebar-bg) !important; /* Or var(--bg-color) */
-    color: var(--text-color-light) !important;
-    border: 1px solid var(--border-color) !important;
-    padding: 8px 12px !important;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    background: var(--dropdown-bg); /* Use dropdown bg for dialogs */
+    color: var(--text-color);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: .4em .8em; /* More padding */
+    font-size: 0.85em; /* Match tab font size */
+    position: absolute; left: 0; right: 0; z-index: 15; overflow: hidden;
 }
+.CodeMirror-dialog-top { border-bottom: 1px solid var(--border-color); border-top: none; }
+.CodeMirror-dialog-bottom { border-top: 1px solid var(--border-color); border-bottom: none;}
 
 .CodeMirror-dialog input[type="text"] {
-    background-color: var(--editor-bg) !important;
-    color: var(--text-color-light) !important;
-    border: 1px solid var(--border-color) !important;
-    padding: 4px 6px !important;
+    width: 20em;
+    background-color: var(--editor-bg); /* Input background from editor theme */
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 4px 6px;
     border-radius: 3px;
-    margin: 0 5px !important;
+    margin: 0 5px;
 }
+body.light-theme .CodeMirror-dialog input[type="text"]{
+    background-color: #fff; /* Ensure white input on light theme dialog */
+    border: 1px solid #ccc;
+}
+
 .CodeMirror-dialog input[type="text"]:focus {
-    border-color: var(--accent-color) !important;
+    border-color: var(--accent-color);
     outline: none;
 }
 
 .CodeMirror-dialog button {
-    background-color: var(--tab-bg) !important;
-    color: var(--text-color-light) !important;
-    border: 1px solid var(--border-color) !important;
-    padding: 4px 8px !important;
+    font-size: 90%; /* Slightly smaller than dialog text */
+    background-color: var(--tab-bg); /* Consistent button style */
+    color: var(--text-color-light);
+    border: 1px solid var(--border-color);
+    padding: 3px 8px;
     border-radius: 3px;
     cursor: pointer;
-    margin: 0 3px !important;
+    margin: 0 3px;
 }
-.CodeMirror-dialog button:hover {
-    background-color: var(--accent-color) !important;
-    color: #fff !important;
+.CodeMirror-dialog button:hover,
+.CodeMirror-dialog button:focus {
+    background-color: var(--accent-color);
+    color: #fff; /* White text on accent hover */
+    outline: none;
+}
+body.light-theme .CodeMirror-dialog button:hover,
+body.light-theme .CodeMirror-dialog button:focus {
+    color: #ffffff;
 }
 
-.CodeMirror-search-label { /* For labels like "Search:", "Replace:", "With:" */
-    color: var(--text-color) !important;
+.CodeMirror-search-label {
+    color: var(--text-color);
+    padding: 0 .4em;
 }
 
-/* Matches on Scrollbar Styling */
-.cm-matchhighlight {
-    background-color: rgba(255, 255, 0, 0.2) !important; /* Default yellow highlight for matches */
+/* CodeMirror Hint popups - Themed */
+.CodeMirror-hints {
+    background-color: var(--dropdown-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-family: var(--font-editor); /* Match editor font */
+    font-size: 0.9em; /* Slightly smaller than editor */
+    z-index: 20; /* Above dialogs */
 }
-.CodeMirror-selection-highlight-scrollbar { /* Class for matches on scrollbar */
-  background-color: rgba(255, 229, 0, 0.4) !important; /* Slightly more opaque yellow */
-  border-radius: 1px;
+.CodeMirror-hint {
+    color: var(--text-color); /* Ensure hints are readable */
+    padding: 4px 8px;
+}
+.CodeMirror-hint-active {
+    background-color: var(--accent-color);
+    color: #fff; /* White text on active hint */
+}
+body.light-theme .CodeMirror-hint-active {
+    color: #ffffff;
 }
