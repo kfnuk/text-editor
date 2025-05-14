@@ -173,11 +173,21 @@ document.addEventListener('DOMContentLoaded', () => {
             foldGutter: true, gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
             extraKeys: {
                 "Ctrl-Space": "autocomplete",
-                "Cmd-Space": "autocomplete", // For Mac
-                "Ctrl-/": "toggleComment",   // For Windows/Linux
-                "Cmd-/": "toggleComment"     // For Mac
+                "Cmd-Space": "autocomplete",
+                "Ctrl-/": "toggleComment",
+                "Cmd-/": "toggleComment",
+                // Standard search keybindings are usually added by search.js addon itself.
+                // We can explicitly add them if needed or to override.
+                "Ctrl-F": "findPersistent", // Or just "find"
+                "Cmd-F": "findPersistent",   // Or just "find"
+                "Ctrl-H": "replace", // Common alternative for replace
+                "Cmd-Alt-F": "replace", // Mac default for replace
+                // "Shift-Ctrl-F": "replace", // Another common one, might conflict
+                // "Shift-Ctrl-R": "replaceAll" // Might conflict
             },
-            hintOptions: { completeSingle: false }
+            hintOptions: { completeSingle: false },
+            // For matchesonscrollbar addon
+            highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true }
         });
         editor.on("cursorActivity", updateStatusBar);
         editor.on("change", (cmInstance, changeObj) => {
@@ -295,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function promptRenameTab(tabId) {
-        console.log("Attempting to rename tab:", tabId); // DEBUGGING
+        console.log("Attempting to rename tab:", tabId);
         if (!openTabs[tabId]) {
             console.error("promptRenameTab: No tab data found for ID", tabId);
             return;
@@ -364,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             editor.setValue(openTabs[tabId].content);
             editor.setOption("mode", getMimeType(openTabs[tabId].filetype || openTabs[tabId].filename));
             editor.clearHistory();
-            editor.focus(); // Ensure editor gets focus when tab is switched
+            editor.focus(); 
             if (languageStatus) languageStatus.textContent = getDisplayFileType(openTabs[tabId].filetype || openTabs[tabId].filename);
         }
         renderTabs();
@@ -488,35 +498,58 @@ document.addEventListener('DOMContentLoaded', () => {
         const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
         const modKey = isMac ? e.metaKey : e.ctrlKey;
 
-        // Give CodeMirror a chance to handle its own shortcuts first if it has focus
-        if (editor && editor.hasFocus() && editor.getInputField() === document.activeElement) {
-            // For Ctrl+/ or Cmd+/, CodeMirror's extraKeys should handle it.
-            // We don't need to do anything special here for those.
+        // Check if focus is within CodeMirror or one of its dialogs
+        let inCodeMirror = false;
+        if (editor && editor.hasFocus()) {
+            inCodeMirror = true;
+        } else {
+            // Check if focus is in a CodeMirror dialog input
+            const activeElement = document.activeElement;
+            if (activeElement && activeElement.tagName === 'INPUT' && activeElement.closest('.CodeMirror-dialog')) {
+                inCodeMirror = true; // Treat dialog input as "in CodeMirror" for some shortcuts
+            }
         }
 
-        if (modKey && e.key.toLowerCase() === 's') {
+
+        if (modKey && e.key.toLowerCase() === 'f') { // Find
+            if (editor) { // Check if editor is initialized
+                e.preventDefault();
+                CodeMirror.commands.findPersistent(editor); // Use findPersistent for a better dialog
+            }
+        } else if (modKey && e.key.toLowerCase() === 'h') { // Replace (often Ctrl+H or Cmd+Alt+F)
+             if (editor) {
+                e.preventDefault();
+                CodeMirror.commands.replace(editor);
+            }
+        } else if (modKey && e.key.toLowerCase() === 's') { // Save
             e.preventDefault();
             saveFileBtn.click();
-        } else if (modKey && e.key.toLowerCase() === 'n') {
+        } else if (modKey && e.key.toLowerCase() === 'n') { // New File
             e.preventDefault();
             createNewUntitledFile();
-        } else if (modKey && e.key.toLowerCase() === 'o') {
+        } else if (modKey && e.key.toLowerCase() === 'o') { // Open File
             e.preventDefault();
             openFileBtn.click();
-        } else if (modKey && e.key.toLowerCase() === 'w') {
+        } else if (modKey && e.key.toLowerCase() === 'w') { // Close Tab
             e.preventDefault();
             if (activeTabId) {
                 closeTab(activeTabId);
             }
-        } else if (e.key === 'F2') {
-            console.log("F2 keydown event detected on document."); // DEBUGGING
-            e.preventDefault(); // Prevent any default F2 browser behavior
-            if (activeTabId) {
-                promptRenameTab(activeTabId);
-            } else {
-                console.log("F2 pressed, but no active tab to rename.");
+        } else if (e.key === 'F2') { // Rename Tab
+            // Only trigger rename if not focused inside CodeMirror or its dialogs,
+            // as F2 might be used by some CodeMirror addons or modes.
+            if (!inCodeMirror) {
+                e.preventDefault();
+                if (activeTabId) {
+                    promptRenameTab(activeTabId);
+                } else {
+                    console.log("F2 pressed, but no active tab to rename.");
+                }
             }
         }
+        // Ctrl+/ (Cmd+/) for toggleComment is handled by CodeMirror's extraKeys
+        // Ctrl-G / Cmd-G for findNext and Shift-Ctrl-G / Shift-Cmd-G for findPrev
+        // are also typically handled by the search addon when its dialog is open.
     });
 
     window.addEventListener('beforeunload', (event) => {

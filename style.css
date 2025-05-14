@@ -291,3 +291,53 @@ body {
     color: var(--tab-inactive-fg);
     text-align: center;
 }
+
+/* Search Dialog Styling - to match dark theme */
+.CodeMirror-dialog {
+    background-color: var(--sidebar-bg) !important; /* Or var(--bg-color) */
+    color: var(--text-color-light) !important;
+    border: 1px solid var(--border-color) !important;
+    padding: 8px 12px !important;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.CodeMirror-dialog input[type="text"] {
+    background-color: var(--editor-bg) !important;
+    color: var(--text-color-light) !important;
+    border: 1px solid var(--border-color) !important;
+    padding: 4px 6px !important;
+    border-radius: 3px;
+    margin: 0 5px !important;
+}
+.CodeMirror-dialog input[type="text"]:focus {
+    border-color: var(--accent-color) !important;
+    outline: none;
+}
+
+.CodeMirror-dialog button {
+    background-color: var(--tab-bg) !important;
+    color: var(--text-color-light) !important;
+    border: 1px solid var(--border-color) !important;
+    padding: 4px 8px !important;
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 0 3px !important;
+}
+.CodeMirror-dialog button:hover {
+    background-color: var(--accent-color) !important;
+    color: #fff !important;
+}
+
+.CodeMirror-search-label { /* For labels like "Search:", "Replace:", "With:" */
+    color: var(--text-color) !important;
+}
+
+/* Matches on Scrollbar Styling */
+.cm-matchhighlight {
+    background-color: rgba(255, 255, 0, 0.2) !important; /* Default yellow highlight for matches */
+}
+.CodeMirror-selection-highlight-scrollbar { /* Class for matches on scrollbar */
+  background-color: rgba(255, 229, 0, 0.4) !important; /* Slightly more opaque yellow */
+  border-radius: 1px;
+}
