@@ -9,12 +9,14 @@
     <link rel="alternate icon" type="image/png" href="images/favicon.png">
     <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
     <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/fold/foldgutter.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/matchesonscrollbar.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.css">
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -25,7 +27,8 @@
                 <span id="menu-file-label">File</span>
                 <div class="dropdown-menu" role="menu" aria-labelledby="menu-file-label">
                     <div class="dropdown-item" id="menu-new-file" role="menuitem">New File <span class="shortcut">(Ctrl+N)</span></div>
-                    <div class="dropdown-item" id="menu-open-file" role="menuitem">Open File... <span class="shortcut">(Ctrl+O)</span></div>
+                    <div class="dropdown-item" id="menu-open-file-single" role="menuitem">Open File... <span class="shortcut">(Ctrl+Shift+O)</span></div>
+                    <div class="dropdown-item" id="menu-open-folder" role="menuitem">Open Folder... <span class="shortcut">(Ctrl+O)</span></div>
                     <div class="dropdown-item" id="menu-save-file" role="menuitem">Save File <span class="shortcut">(Ctrl+S)</span></div>
                 </div>
             </div>
@@ -42,17 +45,17 @@
                 <span id="menu-view-label">View</span>
                 <div class="dropdown-menu" role="menu" aria-labelledby="menu-view-label">
                     <div class="dropdown-item" id="menu-toggle-theme" role="menuitem">Toggle Dark/Light Theme</div>
-                    </div>
+                </div>
             </div>
         </div>
 
         <div class="content-wrapper">
             <div class="sidebar" id="sidebar">
                 <div class="sidebar-header">
-                    OPEN FILES
+                    EXPLORER
                 </div>
-                <ul class="file-list" role="listbox" aria-label="Open files">
-                </ul>
+                <div class="project-explorer" id="project-explorer-container" role="tree" aria-label="Project files">
+                    </div>
                 <input type="file" id="file-input" style="display: none;" aria-hidden="true">
             </div>
             <div class="resizer" id="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar"></div>
@@ -102,6 +105,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/scroll/annotatescrollbar.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/matchesonscrollbar.min.js"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jshint/2.13.6/jshint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/csslint/1.0.5/csslint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmlhint/1.1.4/htmlhint.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/javascript-lint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/css-lint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/html-lint.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
