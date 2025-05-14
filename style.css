@@ -195,7 +195,6 @@ body {
     background-color: var(--editor-bg);
     border-top: 2px solid transparent;
     min-height: 0; /* CRUCIAL for allowing .CodeMirror to scroll internally within a flex item */
-    /* overflow: hidden; /* Not strictly needed here as .CodeMirror should handle its own scrolling */
 }
 
 .editor-area.active-tab-indicator {
@@ -211,7 +210,6 @@ body {
     line-height: 1.5 !important;
     background-color: var(--editor-bg) !important;
     color: var(--text-color-light) !important;
-    /* CodeMirror handles its own overflow and scrollbars internally by default */
 }
 
 /* Theme specific overrides for CodeMirror material-darker */
@@ -284,7 +282,6 @@ body {
     background-color: var(--accent-color) !important;
     color: #fff !important;
 }
-
 
 .file-list:empty::before {
     content: "No files open";

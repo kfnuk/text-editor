@@ -5,28 +5,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const lineColStatus = document.getElementById('line-col-status');
     const languageStatus = document.getElementById('language-status');
 
-    const sidebar = document.getElementById('sidebar'); // For resizer
-    const sidebarResizer = document.getElementById('sidebar-resizer'); // For resizer
+    const sidebar = document.getElementById('sidebar');
+    const sidebarResizer = document.getElementById('sidebar-resizer');
     const sidebarFileList = document.querySelector('.file-list');
-    const newFileBtn = document.getElementById('new-file-btn'); // New button
+    const newFileBtn = document.getElementById('new-file-btn');
     const openFileBtn = document.getElementById('open-file-btn');
     const fileInput = document.getElementById('file-input');
     const saveFileBtn = document.getElementById('save-file-btn');
 
     let editor;
     let openTabs = {};
-    let nextTabIdCounter = 1; // For generating unique part of tab IDs
-    let untitledFileCounter = 1; // For naming new untitled files
+    let nextTabIdCounter = 1;
+    let untitledFileCounter = 1;
     let activeTabId = null;
 
     const LS_OPEN_TABS = 'webEditorOpenTabs';
     const LS_ACTIVE_TAB = 'webEditorActiveTab';
     const LS_NEXT_TAB_ID_COUNTER = 'webEditorNextTabIdCounter';
     const LS_UNTITLED_COUNTER = 'webEditorUntitledCounter';
-    const LS_SIDEBAR_WIDTH = 'webEditorSidebarWidth'; // From previous step
-
-    // Remove projectFileContents as we are not loading default project files anymore
-    // const projectFileContents = { ... };
+    const LS_SIDEBAR_WIDTH = 'webEditorSidebarWidth';
 
     // --- Sidebar Resizing Logic ---
     const DEFAULT_SIDEBAR_WIDTH = 250;
@@ -83,19 +80,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // --- End Sidebar Resizing Logic ---
 
-
     // --- Local Storage Functions ---
     function saveStateToLocalStorage() {
         const tabsToSave = {};
         for (const id in openTabs) {
-            tabsToSave[id] = {
-                id: openTabs[id].id,
-                filename: openTabs[id].filename,
-                filetype: openTabs[id].filetype,
-                content: (id === activeTabId && editor) ? editor.getValue() : openTabs[id].content,
-                isDirty: openTabs[id].isDirty,
-                isFromLocalFile: openTabs[id].isFromLocalFile // Persist this flag
-            };
+            if (openTabs.hasOwnProperty(id)) {
+                tabsToSave[id] = {
+                    id: openTabs[id].id,
+                    filename: openTabs[id].filename,
+                    filetype: openTabs[id].filetype,
+                    content: (id === activeTabId && editor) ? editor.getValue() : openTabs[id].content,
+                    isDirty: openTabs[id].isDirty,
+                    isFromLocalFile: openTabs[id].isFromLocalFile,
+                    isUntitled: openTabs[id].isUntitled
+                };
+            }
         }
         localStorage.setItem(LS_OPEN_TABS, JSON.stringify(tabsToSave));
         if (activeTabId) {
@@ -119,22 +118,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeTabId = savedActiveTab || null;
                 if (savedNextTabIdCounter) {
                     nextTabIdCounter = parseInt(savedNextTabIdCounter, 10);
-                    if (isNaN(nextTabIdCounter)) nextTabIdCounter = 1;
+                    if (isNaN(nextTabIdCounter) || nextTabIdCounter < 1) nextTabIdCounter = 1;
                 } else {
-                    nextTabIdCounter = 1; // Default if not found
-                    Object.keys(openTabs).forEach(tabKey => { // Estimate if needed
+                    nextTabIdCounter = 1;
+                    Object.keys(openTabs).forEach(tabKey => {
                         const num = parseInt(tabKey.replace('tab-', ''), 10);
                         if (!isNaN(num) && num >= nextTabIdCounter) nextTabIdCounter = num + 1;
                     });
                 }
                 if (savedUntitledCounter) {
                     untitledFileCounter = parseInt(savedUntitledCounter, 10);
-                    if (isNaN(untitledFileCounter)) untitledFileCounter = 1;
+                    if (isNaN(untitledFileCounter) || untitledFileCounter < 1) untitledFileCounter = 1;
                 } else {
-                    untitledFileCounter = 1; // Default
+                    untitledFileCounter = 1;
                      Object.values(openTabs).forEach(tab => {
-                        if (tab.filename.startsWith("untitled-")) {
-                            const num = parseInt(tab.filename.replace("untitled-", ""), 10);
+                        if (tab.filename && tab.filename.startsWith("untitled-")) {
+                            const num = parseInt(tab.filename.replace("untitled-", "").split('.')[0], 10);
                             if (!isNaN(num) && num >= untitledFileCounter) {
                                 untitledFileCounter = num + 1;
                             }
@@ -143,13 +142,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 for (const id in openTabs) {
-                    openTabs[id].isDirty = !!openTabs[id].isDirty;
-                    openTabs[id].isFromLocalFile = !!openTabs[id].isFromLocalFile;
+                    if (openTabs.hasOwnProperty(id)) {
+                        openTabs[id].isDirty = !!openTabs[id].isDirty;
+                        openTabs[id].isFromLocalFile = !!openTabs[id].isFromLocalFile;
+                        openTabs[id].isUntitled = !!openTabs[id].isUntitled;
+                    }
                 }
                 return Object.keys(openTabs).length > 0;
             } catch (e) {
                 console.error("Error parsing saved state:", e);
-                localStorage.clear(); // Clear all app-specific storage on error
+                localStorage.removeItem(LS_OPEN_TABS);
+                localStorage.removeItem(LS_ACTIVE_TAB);
+                localStorage.removeItem(LS_NEXT_TAB_ID_COUNTER);
+                localStorage.removeItem(LS_UNTITLED_COUNTER);
                 openTabs = {}; activeTabId = null; nextTabIdCounter = 1; untitledFileCounter = 1;
                 return false;
             }
@@ -166,7 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
             lineNumbers: true,
             autoCloseBrackets: true, autoCloseTags: true, styleActiveLine: true, lineWrapping: true,
             foldGutter: true, gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-            extraKeys: { "Ctrl-Space": "autocomplete" },
+            extraKeys: {
+                "Ctrl-Space": "autocomplete",
+                "Cmd-Space": "autocomplete", // For Mac
+                "Ctrl-/": "toggleComment",   // For Windows/Linux
+                "Cmd-/": "toggleComment"     // For Mac
+            },
             hintOptions: { completeSingle: false }
         });
         editor.on("cursorActivity", updateStatusBar);
@@ -180,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     } else { console.error("Editor container not found!"); }
 
-    function getMimeType(filetypeOrFilename) { /* ... (same as before) ... */ 
+    function getMimeType(filetypeOrFilename) {
         if (!filetypeOrFilename) return "text/plain";
         let extension = filetypeOrFilename.includes('.') ? filetypeOrFilename.split('.').pop().toLowerCase() : filetypeOrFilename.toLowerCase();
         switch (extension) {
@@ -193,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             default: return "text/plain";
         }
     }
-    function getDisplayFileType(filetypeOrFilename) { /* ... (same as before) ... */ 
+    function getDisplayFileType(filetypeOrFilename) {
         if (!filetypeOrFilename) return "Text";
         let extension = filetypeOrFilename.includes('.') ? filetypeOrFilename.split('.').pop().toLowerCase() : filetypeOrFilename.toLowerCase();
         switch (extension) {
@@ -203,34 +213,33 @@ document.addEventListener('DOMContentLoaded', () => {
             case "css": return "CSS";
             case "xml": return "XML";
             case "txt": case "text": return "Text";
-            default: return "Text"; // Default to Text for unknown extensions
+            default: return "Text";
         }
     }
 
     function renderSidebarFileList() {
-        sidebarFileList.innerHTML = ''; // Clear current list
-        const sortedTabs = Object.values(openTabs).sort((a,b) => a.filename.localeCompare(b.filename));
+        sidebarFileList.innerHTML = '';
+        const sortedTabs = Object.values(openTabs).sort((a,b) => (a.filename || "").localeCompare(b.filename || ""));
 
-        if (sortedTabs.length === 0) {
-             // The :empty::before CSS pseudo-element will show "No files open"
+        if (sortedTabs.length === 0 && sidebarFileList.firstChild === null) {
+             // CSS :empty::before handles this
         } else {
             sortedTabs.forEach(tabData => {
                 const li = document.createElement('li');
                 li.className = 'file-item' + (tabData.id === activeTabId ? ' active' : '');
                 li.textContent = tabData.filename;
-                li.dataset.tabId = tabData.id; // Link to tabId
+                li.dataset.tabId = tabData.id;
+                li.title = tabData.filename;
                 li.addEventListener('click', () => switchToTab(tabData.id));
                 sidebarFileList.appendChild(li);
             });
         }
     }
 
-
     function renderTabs() {
         tabContainer.innerHTML = '';
         let hasActiveTab = false;
         const sortedTabIds = Object.keys(openTabs).sort((a, b) => {
-            // Sort by filename for consistent tab order, could also sort by an 'order' property if added
             return (openTabs[a].filename || "").localeCompare(openTabs[b].filename || "");
         });
 
@@ -245,8 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const filenameSpan = document.createElement('span');
                 filenameSpan.className = 'tab-filename';
                 filenameSpan.textContent = tabData.filename;
-                filenameSpan.title = tabData.filename; // Show full name on hover
-                filenameSpan.addEventListener('dblclick', () => promptRenameTab(id)); // Add rename handler
+                filenameSpan.title = tabData.filename;
+                filenameSpan.addEventListener('dblclick', () => promptRenameTab(id));
                 tabDiv.appendChild(filenameSpan);
 
                 if (tabData.isDirty) {
@@ -267,11 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         updateEditorAreaIndicator(hasActiveTab);
-        renderSidebarFileList(); // Update sidebar list whenever tabs change
+        renderSidebarFileList();
         saveStateToLocalStorage();
     }
 
-    function updateEditorAreaIndicator(hasActiveTab) { /* ... (same as before) ... */ 
+    function updateEditorAreaIndicator(hasActiveTab) {
         if (hasActiveTab) {
             editorArea.classList.add('active-tab-indicator');
         } else {
@@ -282,64 +291,65 @@ document.addEventListener('DOMContentLoaded', () => {
     function createNewUntitledFile() {
         const filename = `untitled-${untitledFileCounter++}.txt`;
         const filetype = getDisplayFileType(filename);
-        const newTabId = openNewTab(filename, filetype, "", false); // New files are not dirty
-        openTabs[newTabId].isFromLocalFile = false; // Mark as not from local file system initially
-        openTabs[newTabId].isUntitled = true; // Mark as untitled
+        openNewTab(filename, filetype, "", false, null, false, true);
     }
 
     function promptRenameTab(tabId) {
-        if (!openTabs[tabId]) return;
-
+        console.log("Attempting to rename tab:", tabId); // DEBUGGING
+        if (!openTabs[tabId]) {
+            console.error("promptRenameTab: No tab data found for ID", tabId);
+            return;
+        }
         const currentFilename = openTabs[tabId].filename;
         const newFilename = prompt("Enter new filename:", currentFilename);
 
-        if (newFilename && newFilename !== currentFilename) {
-            // Check for duplicate filenames among open tabs
-            const isDuplicate = Object.values(openTabs).some(tab => tab.id !== tabId && tab.filename === newFilename);
+        if (newFilename && newFilename.trim() !== "" && newFilename !== currentFilename) {
+            const trimmedNewFilename = newFilename.trim();
+            const isDuplicate = Object.values(openTabs).some(tab => tab.id !== tabId && tab.filename === trimmedNewFilename);
             if (isDuplicate) {
-                alert(`A file named "${newFilename}" is already open. Please choose a different name.`);
+                alert(`A file named "${trimmedNewFilename}" is already open. Please choose a different name.`);
                 return;
             }
-
-            openTabs[tabId].filename = newFilename;
-            openTabs[tabId].filetype = getDisplayFileType(newFilename); // Update filetype based on new extension
-            openTabs[tabId].isDirty = true; // Renaming usually implies a change to be saved
-            openTabs[tabId].isUntitled = false; // No longer considered default "untitled"
-            renderTabs(); // Re-render tabs to show new name and update sidebar
-            if (tabId === activeTabId) { // If the active tab was renamed
+            openTabs[tabId].filename = trimmedNewFilename;
+            openTabs[tabId].filetype = getDisplayFileType(trimmedNewFilename);
+            openTabs[tabId].isDirty = true;
+            openTabs[tabId].isUntitled = false;
+            renderTabs();
+            if (tabId === activeTabId) {
                 if (languageStatus) languageStatus.textContent = openTabs[tabId].filetype;
-                editor.setOption("mode", getMimeType(openTabs[tabId].filetype || openTabs[tabId].filename));
+                if (editor) editor.setOption("mode", getMimeType(openTabs[tabId].filetype || openTabs[tabId].filename));
             }
         }
     }
-
 
     function openNewTab(filename, filetype, content = '', isDirty = false, existingId = null, isFromLocal = false, isUnt = false) {
         const newId = existingId || `tab-${nextTabIdCounter++}`;
         openTabs[newId] = {
             id: newId, filename, filetype, content, isDirty,
             isFromLocalFile: isFromLocal,
-            isUntitled: isUnt // Keep track if it's an "untitled-X" file
+            isUntitled: isUnt
         };
         switchToTab(newId);
         return newId;
     }
 
-    function switchToTab(tabId) { /* ... (same as before, ensure renderTabs() is called) ... */ 
+    function switchToTab(tabId) {
         if (!openTabs[tabId]) {
             console.warn(`Attempted to switch to non-existent tabId: ${tabId}`);
             const remainingTabIds = Object.keys(openTabs);
-            activeTabId = remainingTabIds.length > 0 ? remainingTabIds[0] : null;
-            if (!activeTabId) { // No tabs left
-                if(editor) editor.setValue(""); editor.setOption("mode", "text/plain"); editor.clearHistory();
+            activeTabId = remainingTabIds.length > 0 ? Object.values(openTabs).sort((a,b) => (a.filename || "").localeCompare(b.filename || ""))[0].id : null;
+            
+            if (!activeTabId && editor) {
+                editor.setValue(""); editor.setOption("mode", "text/plain"); editor.clearHistory();
                 if(languageStatus) languageStatus.textContent = "Text";
             }
-            renderTabs(); // This will call saveStateToLocalStorage
-            if (activeTabId && openTabs[activeTabId] && editor) { // If we recovered a tab
+            renderTabs(); 
+            if (activeTabId && openTabs[activeTabId] && editor) {
                  editor.setValue(openTabs[activeTabId].content);
                  editor.setOption("mode", getMimeType(openTabs[activeTabId].filetype || openTabs[activeTabId].filename));
                  editor.clearHistory();
                  editor.focus();
+                 if(languageStatus) languageStatus.textContent = getDisplayFileType(openTabs[activeTabId].filetype || openTabs[activeTabId].filename);
             }
             updateStatusBar();
             return;
@@ -354,20 +364,20 @@ document.addEventListener('DOMContentLoaded', () => {
             editor.setValue(openTabs[tabId].content);
             editor.setOption("mode", getMimeType(openTabs[tabId].filetype || openTabs[tabId].filename));
             editor.clearHistory();
-            editor.focus();
+            editor.focus(); // Ensure editor gets focus when tab is switched
+            if (languageStatus) languageStatus.textContent = getDisplayFileType(openTabs[tabId].filetype || openTabs[tabId].filename);
         }
-        renderTabs(); // This re-renders tabs, sidebar, and saves to LS
+        renderTabs();
         updateStatusBar();
-        if (languageStatus) languageStatus.textContent = getDisplayFileType(openTabs[tabId].filetype || openTabs[tabId].filename);
     
-        // Update sidebar active item
         document.querySelectorAll('.sidebar .file-item.active').forEach(item => item.classList.remove('active'));
         const sidebarItem = sidebarFileList.querySelector(`.file-item[data-tab-id="${tabId}"]`);
         if(sidebarItem) sidebarItem.classList.add('active');
     }
 
-    function closeTab(tabIdToClose) { /* ... (same as before, ensure switchToTab or renderTabs is called at the end) ... */ 
-        if (openTabs[tabIdToClose] && openTabs[tabIdToClose].isDirty) {
+    function closeTab(tabIdToClose) {
+        if (!openTabs[tabIdToClose]) return;
+        if (openTabs[tabIdToClose].isDirty) {
             if (!confirm(`File "${openTabs[tabIdToClose].filename}" has unsaved changes. Close anyway?`)) {
                 return;
             }
@@ -378,24 +388,22 @@ document.addEventListener('DOMContentLoaded', () => {
             activeTabId = null;
             const remainingTabIds = Object.keys(openTabs);
             if (remainingTabIds.length > 0) {
-                // Sort remaining tabs by filename (or original order if preferred) to pick next active
-                const nextActive = Object.values(openTabs).sort((a,b) => a.filename.localeCompare(b.filename))[0].id;
+                const nextActive = Object.values(openTabs).sort((a,b) => (a.filename || "").localeCompare(b.filename || ""))[0].id;
                 switchToTab(nextActive);
-            } else { // No tabs left
+            } else {
                 if (editor) { editor.setValue(""); editor.setOption("mode", "text/plain"); editor.clearHistory(); }
-                renderTabs(); // Render empty state (calls saveState)
+                renderTabs();
                 updateStatusBar();
                 if (languageStatus) languageStatus.textContent = "Text";
             }
         } else {
-            renderTabs(); // Just re-render if a non-active tab was closed (calls saveState)
+            renderTabs();
         }
     }
 
-    if (tabContainer) { /* ... (event listener for tab clicks, calls switchToTab) ... */ 
+    if (tabContainer) {
         tabContainer.addEventListener('click', (event) => {
             let clickedEl = event.target;
-            // Traverse up to find .tab element, but not beyond .tab-bar
             while (clickedEl && clickedEl !== tabContainer && !clickedEl.classList.contains('tab')) {
                 clickedEl = clickedEl.parentElement;
             }
@@ -407,24 +415,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function updateStatusBar() { /* ... (same as before) ... */ 
+    function updateStatusBar() {
          if (!editor || !lineColStatus) return;
         const cursor = editor.getCursor();
-        lineColStatus.textContent = `Line: ${cursor.line + 1}, Column: ${cursor.ch + 1}`;
+        lineColStatus.textContent = `Line: ${cursor.line + 1}, Col: ${cursor.ch + 1}`;
     }
 
-    // Remove sidebarFileList event listener, as it's now populated by renderSidebarFileList
-    // if (sidebarFileList) { ... }
-
-    // "New File" button listener
     if (newFileBtn) {
         newFileBtn.addEventListener('click', createNewUntitledFile);
     }
-
-    if (openFileBtn) { /* ... (same as before, but sets isFromLocalFile=true in openNewTab) ... */ 
+    if (openFileBtn) {
         openFileBtn.addEventListener('click', () => fileInput.click());
     }
-    if (fileInput) { /* ... (same as before, but sets isFromLocalFile=true in openNewTab) ... */ 
+    if (fileInput) {
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -433,36 +436,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     const content = e.target.result;
                     const filename = file.name;
                     const filetype = getDisplayFileType(filename);
-                    openNewTab(filename, filetype, content, false, null, true); // Pass true for isFromLocal
+                    openNewTab(filename, filetype, content, false, null, true, false);
                     fileInput.value = null;
                 };
                 reader.readAsText(file);
             }
         });
     }
-
-    if (saveFileBtn) { /* ... (same as before, also updates isUntitled) ... */ 
+    if (saveFileBtn) {
         saveFileBtn.addEventListener('click', () => {
             if (!activeTabId || !openTabs[activeTabId]) {
                 alert("No active file to save!"); return;
             }
             const tabData = openTabs[activeTabId];
-            // If it's still an "untitled-X" file, prompt for a name before saving
-            if (tabData.isUntitled || tabData.filename.startsWith("untitled-")) {
+            if (tabData.isUntitled || (tabData.filename && tabData.filename.startsWith("untitled-"))) {
                 const newName = prompt("Save as:", tabData.filename);
-                if (newName) {
-                    // Check for duplicate filenames among open tabs
-                    const isDuplicate = Object.values(openTabs).some(tab => tab.id !== activeTabId && tab.filename === newName);
+                if (newName && newName.trim() !== "") {
+                    const trimmedNewName = newName.trim();
+                    const isDuplicate = Object.values(openTabs).some(tab => tab.id !== activeTabId && tab.filename === trimmedNewName);
                     if (isDuplicate) {
-                        alert(`A file named "${newName}" is already open. Please save with a different name or close the existing one.`);
+                        alert(`A file named "${trimmedNewName}" is already open. Please save with a different name.`);
                         return;
                     }
-                    tabData.filename = newName;
-                    tabData.filetype = getDisplayFileType(newName);
+                    tabData.filename = trimmedNewName;
+                    tabData.filetype = getDisplayFileType(trimmedNewName);
                     tabData.isUntitled = false;
-                } else {
-                    return; // User cancelled save prompt
-                }
+                } else { return; } 
             }
 
             const content = editor.getValue();
@@ -477,50 +476,77 @@ document.addEventListener('DOMContentLoaded', () => {
             URL.revokeObjectURL(a.href);
 
             openTabs[activeTabId].isDirty = false;
-            openTabs[activeTabId].content = content; // Update content after successful save
-            if(languageStatus && activeTabId === tabId) languageStatus.textContent = tabData.filetype; // tabId not defined here
+            openTabs[activeTabId].content = content;
             if(languageStatus && openTabs[activeTabId]) languageStatus.textContent = openTabs[activeTabId].filetype;
-
-            renderTabs(); // Update UI (removes dirty, updates name)
+            renderTabs();
             console.log(`${filename} saved.`);
         });
     }
-    document.addEventListener('keydown', function(e) { /* ... (save shortcut) ... */ 
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+
+    // --- Keyboard Shortcuts ---
+    document.addEventListener('keydown', function(e) {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+        // Give CodeMirror a chance to handle its own shortcuts first if it has focus
+        if (editor && editor.hasFocus() && editor.getInputField() === document.activeElement) {
+            // For Ctrl+/ or Cmd+/, CodeMirror's extraKeys should handle it.
+            // We don't need to do anything special here for those.
+        }
+
+        if (modKey && e.key.toLowerCase() === 's') {
             e.preventDefault();
             saveFileBtn.click();
+        } else if (modKey && e.key.toLowerCase() === 'n') {
+            e.preventDefault();
+            createNewUntitledFile();
+        } else if (modKey && e.key.toLowerCase() === 'o') {
+            e.preventDefault();
+            openFileBtn.click();
+        } else if (modKey && e.key.toLowerCase() === 'w') {
+            e.preventDefault();
+            if (activeTabId) {
+                closeTab(activeTabId);
+            }
+        } else if (e.key === 'F2') {
+            console.log("F2 keydown event detected on document."); // DEBUGGING
+            e.preventDefault(); // Prevent any default F2 browser behavior
+            if (activeTabId) {
+                promptRenameTab(activeTabId);
+            } else {
+                console.log("F2 pressed, but no active tab to rename.");
+            }
         }
     });
-    window.addEventListener('beforeunload', (event) => { /* ... (same as before) ... */ 
+
+    window.addEventListener('beforeunload', (event) => {
         if (activeTabId && openTabs[activeTabId] && editor && openTabs[activeTabId].isDirty) {
              openTabs[activeTabId].content = editor.getValue();
         }
         saveStateToLocalStorage();
-
         let hasUnsavedChanges = false;
         for (const id in openTabs) { if (openTabs[id].isDirty) { hasUnsavedChanges = true; break; } }
         if (hasUnsavedChanges) { event.preventDefault(); event.returnValue = ''; }
     });
 
     // --- Initial Load ---
-    loadSidebarWidth(); // Load sidebar width first
-
+    loadSidebarWidth();
     const stateLoaded = loadStateFromLocalStorage();
-    if (stateLoaded) { // implies Object.keys(openTabs).length > 0 if true
-        renderTabs(); // Render all tabs from LS
+    if (stateLoaded) {
+        renderTabs();
         let tabToActivate = activeTabId;
         if (!tabToActivate || !openTabs[tabToActivate]) {
-            const sortedRestoredTabs = Object.values(openTabs).sort((a,b) => a.filename.localeCompare(b.filename));
+            const sortedRestoredTabs = Object.values(openTabs).sort((a,b) => (a.filename||"").localeCompare(b.filename||""));
             tabToActivate = sortedRestoredTabs.length > 0 ? sortedRestoredTabs[0].id : null;
         }
         if (tabToActivate) {
             switchToTab(tabToActivate);
-        } else { // No valid tabs to activate from LS
-            activeTabId = null; // Ensure consistency
-            createNewUntitledFile(); // Open a fresh untitled tab
+        } else {
+            activeTabId = null;
+            createNewUntitledFile();
         }
-    } else { // No localStorage state, or it was empty/corrupted
-        openTabs = {}; activeTabId = null; nextTabIdCounter = 1; untitledFileCounter = 1; // Reset state
-        createNewUntitledFile(); // Open a default blank tab
+    } else {
+        openTabs = {}; activeTabId = null; nextTabIdCounter = 1; untitledFileCounter = 1;
+        createNewUntitledFile();
     }
 });
