@@ -1,0 +1,296 @@
+/* Basic Reset & Root Variables */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-color: #282c34;
+    --sidebar-bg: #21252b;
+    --editor-bg: #2c313a;
+    --tab-bg: #3a3f4b;
+    --tab-active-bg: var(--editor-bg);
+    --tab-inactive-fg: #9da5b4;
+    --status-bar-bg: #181a1f;
+    --text-color: #abb2bf;
+    --text-color-light: #d4d4d4;
+    --accent-color: #61afef;
+    --border-color: #181a1f;
+    --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-editor: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow: hidden; /* Prevent scrollbars on the body itself */
+    height: 100vh;
+    display: flex;
+}
+
+.app-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh; /* Fill viewport */
+}
+
+/* Sidebar Styling */
+.sidebar {
+    /* width: 250px; /* Initial width set by JS */
+    min-width: 150px;
+    max-width: 500px;
+    background-color: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+    color: var(--text-color-light);
+    flex-shrink: 0; /* Does not shrink if content in main area grows */
+}
+
+.sidebar-header {
+    padding: 10px 15px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #333742;
+    margin-bottom: 5px;
+}
+
+.file-list {
+    list-style: none;
+    overflow-y: auto; /* Allow sidebar file list to scroll if needed */
+}
+
+.file-item {
+    padding: 8px 15px;
+    font-size: 0.9em;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-item:hover {
+    background-color: #3a3f4b;
+}
+
+.file-item.active {
+    background-color: var(--accent-color);
+    color: #ffffff;
+}
+
+.sidebar-actions {
+    padding: 10px 15px;
+    border-top: 1px solid #333742;
+    margin-top: auto; /* Pushes actions to the bottom */
+}
+
+.sidebar-actions button {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    background-color: var(--accent-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 3px;
+    font-family: var(--font-main);
+    font-size: 0.9em;
+    cursor: pointer;
+}
+.sidebar-actions button:hover {
+    background-color: #529bda;
+}
+.sidebar-actions button:last-child {
+    margin-bottom: 0;
+}
+
+/* Resizer Handle Styling */
+.resizer {
+    width: 5px;
+    background-color: var(--border-color);
+    cursor: col-resize;
+    flex-shrink: 0;
+    z-index: 10;
+}
+.resizer:hover {
+    background-color: var(--accent-color);
+}
+
+/* Main Content Area */
+.main-content {
+    flex-grow: 1; /* Takes remaining horizontal space */
+    display: flex;
+    flex-direction: column; /* Arranges tab-bar, editor-area, status-bar vertically */
+    overflow: hidden; /* Prevents this container from scrolling if children overflow. Crucial. */
+    min-width: 0; /* Important for flex children that might want to overflow */
+}
+
+/* Tab Bar Styling */
+.tab-bar {
+    display: flex;
+    background-color: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0; /* Fixed height, does not shrink */
+}
+
+.tab {
+    padding: 10px 15px;
+    background-color: var(--tab-bg);
+    color: var(--tab-inactive-fg);
+    border-right: 1px solid var(--border-color);
+    cursor: pointer;
+    font-size: 0.85em;
+    position: relative;
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+}
+.tab:not(.active):hover {
+    background-color: #4a4f5a;
+}
+.tab.active {
+    background-color: var(--tab-active-bg);
+    color: var(--text-color-light);
+    position: relative;
+}
+.tab .tab-filename {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tab .dirty-indicator {
+    margin-left: 5px;
+    margin-right: -5px;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    opacity: 0.7;
+}
+.close-tab {
+    margin-left: 10px;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    line-height: 1;
+}
+.close-tab:hover {
+    background-color: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+/* Editor Area Styling */
+.editor-area {
+    flex-grow: 1; /* Takes all available vertical space in .main-content */
+    display: flex; /* Allows .CodeMirror to fill it */
+    position: relative;
+    background-color: var(--editor-bg);
+    border-top: 2px solid transparent;
+    min-height: 0; /* CRUCIAL for allowing .CodeMirror to scroll internally within a flex item */
+    /* overflow: hidden; /* Not strictly needed here as .CodeMirror should handle its own scrolling */
+}
+
+.editor-area.active-tab-indicator {
+    border-top-color: var(--accent-color);
+}
+
+/* Styling for CodeMirror itself */
+.CodeMirror {
+    flex-grow: 1; /* Fill .editor-area horizontally */
+    height: 100%; /* Fill .editor-area vertically */
+    font-family: var(--font-editor) !important;
+    font-size: 1em !important;
+    line-height: 1.5 !important;
+    background-color: var(--editor-bg) !important;
+    color: var(--text-color-light) !important;
+    /* CodeMirror handles its own overflow and scrollbars internally by default */
+}
+
+/* Theme specific overrides for CodeMirror material-darker */
+.cm-s-material-darker.CodeMirror {
+    background-color: var(--editor-bg);
+    color: var(--text-color-light);
+}
+.cm-s-material-darker .CodeMirror-gutters {
+    background-color: var(--editor-bg);
+    border-right: 1px solid #333742;
+}
+.cm-s-material-darker .CodeMirror-linenumber {
+    color: #6c788b;
+}
+.cm-s-material-darker .CodeMirror-cursor {
+    border-left: 1px solid var(--accent-color) !important;
+}
+.cm-s-material-darker .CodeMirror-selected {
+    background: rgba(97, 175, 239, 0.2);
+}
+.cm-s-material-darker .CodeMirror-activeline-background {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Status Bar Styling */
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 15px;
+    background-color: var(--status-bar-bg);
+    color: var(--text-color);
+    font-size: 0.8em;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0; /* Fixed height */
+    height: 25px;
+}
+.status-bar span {
+    margin-left: 15px;
+}
+.status-bar span:first-child {
+    margin-left: 0;
+}
+
+/* Fold Gutter Styling */
+.cm-s-material-darker .CodeMirror-foldgutter-open:after {
+    color: #aaa;
+}
+.cm-s-material-darker .CodeMirror-foldgutter-folded:after {
+    color: var(--accent-color);
+}
+.CodeMirror-foldmarker {
+    color: var(--accent-color);
+    background-color: #3a3f4b;
+    border-color: #444;
+    cursor: pointer;
+}
+
+/* Hint Popup Styling */
+.CodeMirror-hints.material-darker {
+    background-color: #3a3f4b !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
+}
+.CodeMirror-hints.material-darker .CodeMirror-hint {
+    color: var(--text-color-light) !important;
+    padding: 4px 8px !important;
+}
+.CodeMirror-hints.material-darker .CodeMirror-hint-active {
+    background-color: var(--accent-color) !important;
+    color: #fff !important;
+}
+
+
+.file-list:empty::before {
+    content: "No files open";
+    display: block;
+    padding: 10px 15px;
+    font-style: italic;
+    color: var(--tab-inactive-fg);
+    text-align: center;
+}
