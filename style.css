@@ -43,6 +43,17 @@
     --explorer-arrow-collapsed: '▶';
     --explorer-indent-step: 15px; /* Indentation amount per level */
 
+    /* Command Palette specific */
+    --palette-bg: #2c313a;
+    --palette-border: #3a3f4b;
+    --palette-input-bg: #21252b;
+    --palette-input-fg: var(--text-color-light);
+    --palette-item-hover-bg: #3a3f4b;
+    --palette-item-selected-bg: var(--accent-color);
+    --palette-item-selected-fg: #ffffff;
+    --palette-shortcut-fg: #888ea0;
+
+
 }
 
 body.light-theme {
@@ -73,6 +84,16 @@ body.light-theme {
     --explorer-item-hover-bg: #d8dfe4;
     --explorer-item-active-bg: var(--accent-color);
     --explorer-item-active-fg: #ffffff;
+
+    /* Command Palette specific for light theme */
+    --palette-bg: #ffffff;
+    --palette-border: #ced4da;
+    --palette-input-bg: #e9ecef;
+    --palette-input-fg: var(--text-color);
+    --palette-item-hover-bg: #e9ecef;
+    --palette-item-selected-bg: var(--accent-color);
+    --palette-item-selected-fg: #ffffff;
+    --palette-shortcut-fg: #6c757d;
 }
 
 
@@ -160,26 +181,26 @@ body {
 .dropdown-item:hover,
 .dropdown-item:focus {
     background-color: var(--dropdown-item-hover-bg);
-    color: white;
+    color: white; /* Ensure text is white on hover for both themes */
     outline: none;
 }
 body.light-theme .dropdown-item:hover,
 body.light-theme .dropdown-item:focus {
-    color: #ffffff;
+    color: #ffffff; /* Explicitly white for light theme hover */
 }
 
 
 .dropdown-item .shortcut {
-    color: var(--tab-inactive-fg);
+    color: var(--tab-inactive-fg); /* Use a variable for consistency */
     margin-left: 20px;
 }
 .dropdown-item:hover .shortcut,
 .dropdown-item:focus .shortcut {
-    color: white;
+    color: white; /* Ensure shortcut text is also white on hover */
 }
 body.light-theme .dropdown-item:hover .shortcut,
 body.light-theme .dropdown-item:focus .shortcut {
-    color: #ffffff;
+    color: #ffffff; /* Explicitly white for light theme hover */
 }
 
 
@@ -193,8 +214,8 @@ body.light-theme .dropdown-item:focus .shortcut {
 .content-wrapper {
     display: flex;
     flex-grow: 1;
-    overflow: hidden;
-    min-height: 0;
+    overflow: hidden; /* Important for layout */
+    min-height: 0; /* Fix for flexbox in some browsers */
 }
 
 .sidebar {
@@ -203,7 +224,7 @@ body.light-theme .dropdown-item:focus .shortcut {
     flex-direction: column;
     color: var(--text-color-light);
     flex-shrink: 0;
-    overflow: hidden;
+    overflow: hidden; /* Prevent content from overflowing sidebar */
     transition: background-color 0.3s, color 0.3s;
 }
 
@@ -215,19 +236,19 @@ body.light-theme .dropdown-item:focus .shortcut {
     text-transform: uppercase;
     letter-spacing: 0.8px;
     border-bottom: 1px solid var(--border-color);
-    margin-bottom: 5px;
+    margin-bottom: 5px; /* Space between header and explorer */
     flex-shrink: 0;
     transition: color 0.3s, border-color 0.3s;
     user-select: none;
 }
 body.light-theme .sidebar-header {
-    border-bottom: 1px solid #ced4da;
+    border-bottom: 1px solid #ced4da; /* Specific border for light theme if needed */
 }
 
 .project-explorer {
     list-style: none;
-    overflow-y: auto;
-    flex-grow: 1;
+    overflow-y: auto; /* Allow scrolling for many files */
+    flex-grow: 1; /* Take remaining space in sidebar */
     padding: 0; /* Base padding for the entire explorer, if any, can go here */
     font-size: 0.9em;
 }
@@ -241,24 +262,21 @@ body.light-theme .sidebar-header {
 }
 
 .explorer-item { /* This is the LI element */
-    /* No horizontal padding here, it's handled by the label for indentation */
-    /* Vertical padding can be here if desired, or on the label */
     cursor: pointer;
     color: var(--text-color-light);
     user-select: none;
-    /* Removed white-space, overflow, text-overflow as label handles it */
 }
 
 .explorer-item-label { /* This is the DIV inside LI */
     display: flex;
     align-items: center;
-    flex-grow: 1; /* Should not be needed if LI is the row */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap; /* Keep content on one line */
     padding-top: 5px;    /* Vertical padding for the clickable row */
     padding-bottom: 5px;
     padding-right: 10px; /* Right padding for the label content */
+    /* Indentation is now dynamic via CSS variable --item-depth */
     padding-left: calc(var(--explorer-indent-step) * var(--item-depth, 0) + 10px); /* Base padding + depth indent */
     transition: background-color 0.15s, color 0.15s;
 }
@@ -267,27 +285,28 @@ body.light-theme .sidebar-header {
 .explorer-item-label:hover,
 .explorer-item:focus-within > .explorer-item-label { /* Highlight label when LI or its descendants are focused */
     background-color: var(--explorer-item-hover-bg);
-    outline: none;
+    outline: none; /* Remove default focus outline if custom styling is applied */
 }
-.explorer-item.active > .explorer-item-label {
+/* Style for the active file in the explorer, linked to the active tab */
+.explorer-item-label.active-explorer-file {
     background-color: var(--explorer-item-active-bg);
-    color: var(--explorer-item-active-fg) !important;
+    color: var(--explorer-item-active-fg) !important; /* Ensure text color overrides */
 }
-.explorer-item.active > .explorer-item-label .explorer-item-icon,
-.explorer-item.active > .explorer-item-label .explorer-item-arrow {
-    color: var(--explorer-item-active-fg) !important;
+.explorer-item-label.active-explorer-file .explorer-item-icon,
+.explorer-item-label.active-explorer-file .explorer-item-arrow {
+    color: var(--explorer-item-active-fg) !important; /* Ensure icon/arrow color overrides */
 }
 
 
 .explorer-item-icon {
     margin-right: 6px; /* Slightly reduced margin */
-    width: 1em;
+    width: 1em; /* Ensure consistent width for alignment */
     text-align: center;
     flex-shrink: 0;
 }
 .explorer-item-arrow {
     margin-right: 4px; /* Slightly reduced margin */
-    width: 1em;
+    width: 1em; /* Ensure consistent width for alignment */
     text-align: center;
     display: inline-block;
     transition: transform 0.2s ease-in-out;
@@ -306,13 +325,13 @@ body.light-theme .sidebar-header {
 .explorer-item ul { /* Nested UL for children */
     list-style: none;
     padding-left: 0; /* Indentation is handled by child explorer-item-label's padding-left */
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.3s ease-in-out;
+    overflow: hidden; /* For the expand/collapse animation */
+    max-height: 0; /* Collapsed by default */
+    transition: max-height 0.3s ease-in-out; /* Smooth transition */
 }
 
 .explorer-item.expanded > ul {
-    max-height: 1000px; /* Adjust as needed for content */
+    max-height: 1000px; /* Large enough to show children; adjust if necessary */
 }
 
 /* Specific icons using pseudo-elements */
@@ -339,7 +358,7 @@ body.light-theme .sidebar-header {
     background-color: var(--border-color);
     cursor: col-resize;
     flex-shrink: 0;
-    z-index: 10;
+    z-index: 10; /* Ensure it's above sidebar content if overlapping */
     transition: background-color 0.3s;
 }
 .resizer:hover,
@@ -352,18 +371,22 @@ body.light-theme .sidebar-header {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
+    overflow: hidden; /* Important for layout */
+    min-width: 0; /* Fix for flexbox in some browsers */
 }
 
 .tab-bar {
     display: flex;
-    background-color: var(--bg-color);
+    background-color: var(--bg-color); /* Match app background */
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
-    overflow-x: auto;
+    overflow-x: auto; /* Allow horizontal scrolling for many tabs */
     transition: background-color 0.3s, border-color 0.3s;
 }
+/* Hide scrollbar for a cleaner look, but still scrollable */
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-bar { -ms-overflow-style: none; scrollbar-width: none; }
+
 
 .tab {
     padding: 10px 15px;
@@ -373,36 +396,36 @@ body.light-theme .sidebar-header {
     cursor: pointer;
     font-size: 0.85em;
     position: relative;
-    min-width: 120px;
-    max-width: 250px;
+    min-width: 120px; /* Minimum width for a tab */
+    max-width: 250px; /* Maximum width before text truncates */
     display: flex;
     align-items: center;
     justify-content: space-between;
     transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 body.light-theme .tab {
-    border-right: 1px solid #adb5bd;
+    border-right: 1px solid #adb5bd; /* Specific border for light theme if needed */
 }
 
 .tab:not(.active):hover,
 .tab:not(.active):focus {
-    background-color: var(--menu-item-hover-bg);
+    background-color: var(--menu-item-hover-bg); /* Use menu hover for consistency */
     outline: none;
 }
 .tab.active {
-    background-color: var(--tab-active-bg);
+    background-color: var(--tab-active-bg); /* Should match editor background */
     color: var(--text-color);
 }
 .tab .tab-filename {
-    flex-grow: 1;
+    flex-grow: 1; /* Allow filename to take available space */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-right: 5px;
+    margin-right: 5px; /* Space before dirty indicator or close button */
 }
 .tab .dirty-indicator {
-    margin-left: auto;
-    margin-right: 5px;
+    margin-left: auto; /* Push to the right if filename is short */
+    margin-right: 5px; /* Space before close button */
     width: 8px;
     height: 8px;
     background-color: var(--accent-color);
@@ -411,111 +434,113 @@ body.light-theme .tab {
     flex-shrink: 0;
 }
 .close-tab {
-    margin-left: 5px;
+    margin-left: 5px; /* Space from filename/dirty indicator */
     font-weight: bold;
-    padding: 1px 4px;
+    padding: 1px 4px; /* Small padding for click area */
     border-radius: 3px;
-    font-size: 1em;
-    line-height: 1;
+    font-size: 1em; /* Relative to tab font size */
+    line-height: 1; /* Ensure 'x' is centered */
     flex-shrink: 0;
-    color: var(--tab-inactive-fg);
+    color: var(--tab-inactive-fg); /* Match inactive tab text */
 }
 .close-tab:hover,
 .close-tab:focus {
-    background-color: rgba(0,0,0,0.1);
-    color: var(--text-color);
+    background-color: rgba(0,0,0,0.1); /* Subtle hover effect */
+    color: var(--text-color); /* Match active tab text on hover */
     outline: none;
 }
 body.light-theme .close-tab:hover,
 body.light-theme .close-tab:focus {
-    background-color: rgba(0,0,0,0.08);
+    background-color: rgba(0,0,0,0.08); /* Lighter hover for light theme */
 }
 
 
 .editor-area {
     flex-grow: 1;
-    display: flex;
-    position: relative;
-    background-color: var(--editor-bg);
-    border-top: 2px solid transparent;
-    min-height: 0;
+    display: flex; /* To make CodeMirror instance fill this area */
+    position: relative; /* For potential absolute positioned elements inside */
+    background-color: var(--editor-bg); /* Should match CodeMirror theme bg */
+    border-top: 2px solid transparent; /* For active tab indicator */
+    min-height: 0; /* Fix for flexbox in some browsers */
     transition: background-color 0.3s, border-top-color 0.3s;
 }
 
 .editor-area.active-tab-indicator {
-    border-top-color: var(--accent-color);
+    border-top-color: var(--accent-color); /* Highlight when a tab is active */
 }
 
 .CodeMirror {
-    flex-grow: 1;
-    height: 100%;
+    flex-grow: 1; /* Make CodeMirror fill the editor-area */
+    height: 100%; /* Ensure CodeMirror takes full height */
     font-family: var(--font-editor);
-    font-size: 1em;
+    font-size: 1em; /* Base editor font size */
     line-height: 1.5;
 }
 
+/* Dark Theme CodeMirror Styles (material-darker) */
 .cm-s-material-darker.CodeMirror {
-    background-color: #2c313a;
-    color: #abb2bf;
+    background-color: #2c313a; /* Matches --editor-bg for dark theme */
+    color: #abb2bf; /* Default text color in material-darker */
 }
 .cm-s-material-darker .CodeMirror-gutters {
-    background-color: var(--cm-gutters-bg-dark);
-    border-right: 1px solid #333742;
+    background-color: var(--cm-gutters-bg-dark); /* Matches editor bg */
+    border-right: 1px solid #333742; /* Subtle gutter border */
 }
 .cm-s-material-darker .CodeMirror-linenumber {
     color: var(--cm-linenumber-color-dark);
 }
 .cm-s-material-darker .CodeMirror-cursor {
-    border-left-color: var(--cm-cursor-color-dark);
+    border-left-color: var(--cm-cursor-color-dark); /* Use accent for cursor */
 }
 .cm-s-material-darker .CodeMirror-selected {
     background: var(--cm-selection-bg-dark);
 }
 .cm-s-material-darker .CodeMirror-activeline-background {
-    background: var(--cm-activeline-bg-dark);
+    background: var(--cm-activeline-bg-dark); /* Subtle active line highlight */
 }
-.cm-s-material-darker .cm-matchhighlight {
+.cm-s-material-darker .cm-matchhighlight { /* For search matches */
     background-color: rgba(255, 255, 0, 0.2);
 }
-.cm-s-material-darker .CodeMirror-selection-highlight-scrollbar {
+.cm-s-material-darker .CodeMirror-selection-highlight-scrollbar { /* For matches on scrollbar */
   background-color: rgba(255, 229, 0, 0.4);
 }
 .cm-s-material-darker .CodeMirror-foldmarker {
     color: var(--accent-color);
-    background-color: var(--tab-bg);
+    background-color: var(--tab-bg); /* Use a slightly different bg for marker */
     border: 1px solid var(--border-color);
     cursor: pointer;
 }
 
+/* Light Theme CodeMirror Styles (default) */
 .cm-s-default.CodeMirror {
-    background-color: #ffffff;
-    color: #212529;
+    background-color: #ffffff; /* Matches --editor-bg for light theme */
+    color: #212529; /* Default text color for light theme */
 }
 .cm-s-default .CodeMirror-gutters {
-    background-color: var(--cm-gutters-bg-light);
-    border-right: 1px solid #dee2e6;
+    background-color: var(--cm-gutters-bg-light); /* Light gutter background */
+    border-right: 1px solid #dee2e6; /* Lighter gutter border */
 }
 .cm-s-default .CodeMirror-linenumber {
     color: var(--cm-linenumber-color-light);
 }
 .cm-s-default .CodeMirror-cursor {
-    border-left-color: var(--cm-cursor-color-light);
+    border-left-color: var(--cm-cursor-color-light); /* Dark cursor for light theme */
 }
 .cm-s-default .CodeMirror-selected {
     background: var(--cm-selection-bg-light);
 }
 .cm-s-default .CodeMirror-activeline-background {
-    background: var(--cm-activeline-bg-light);
+    background: var(--cm-activeline-bg-light); /* Subtle active line for light theme */
 }
 .cm-s-default .cm-matchhighlight {
-    background-color: #ffffa2;
+    background-color: #ffffa2; /* Lighter yellow for matches */
 }
 .cm-s-default .CodeMirror-selection-highlight-scrollbar {
   background-color: #f0f030;
 }
 .cm-s-default .CodeMirror-foldmarker {
-    color: var(--accent-color);
-    background-color: #f0f0f0;
+    color: var(--accent-color); /* Use accent color */
+    background-color: #f0f0f0; /* Light background for marker */
     border: 1px solid #ddd;
     cursor: pointer;
 }
@@ -531,7 +556,7 @@ body.light-theme .close-tab:focus {
     font-size: 0.8em;
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
-    height: 25px;
+    height: 25px; /* Fixed height for status bar */
     transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 .status-bar span {
@@ -541,8 +566,9 @@ body.light-theme .close-tab:focus {
     margin-left: 0;
 }
 
+/* CodeMirror Dialog (Find/Replace) Styling */
 .CodeMirror-dialog {
-    background: var(--dropdown-bg);
+    background: var(--dropdown-bg); /* Match dropdowns for consistency */
     color: var(--text-color);
     border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
@@ -555,7 +581,7 @@ body.light-theme .close-tab:focus {
 
 .CodeMirror-dialog input[type="text"] {
     width: 20em;
-    background-color: var(--editor-bg);
+    background-color: var(--editor-bg); /* Match editor bg for input */
     color: var(--text-color);
     border: 1px solid var(--border-color);
     padding: 4px 6px;
@@ -563,7 +589,7 @@ body.light-theme .close-tab:focus {
     margin: 0 5px;
 }
 body.light-theme .CodeMirror-dialog input[type="text"]{
-    background-color: #fff;
+    background-color: #fff; /* White input for light theme */
     border: 1px solid #ccc;
 }
 
@@ -574,7 +600,7 @@ body.light-theme .CodeMirror-dialog input[type="text"]{
 
 .CodeMirror-dialog button {
     font-size: 90%;
-    background-color: var(--tab-bg);
+    background-color: var(--tab-bg); /* Match tab bg for buttons */
     color: var(--text-color-light);
     border: 1px solid var(--border-color);
     padding: 3px 8px;
@@ -585,27 +611,28 @@ body.light-theme .CodeMirror-dialog input[type="text"]{
 .CodeMirror-dialog button:hover,
 .CodeMirror-dialog button:focus {
     background-color: var(--accent-color);
-    color: #fff;
+    color: #fff; /* White text on accent bg */
     outline: none;
 }
 body.light-theme .CodeMirror-dialog button:hover,
 body.light-theme .CodeMirror-dialog button:focus {
-    color: #ffffff;
+    color: #ffffff; /* Ensure white text on light theme accent */
 }
 
-.CodeMirror-search-label {
+.CodeMirror-search-label { /* Text like "Search:", "Replace:" */
     color: var(--text-color);
     padding: 0 .4em;
 }
 
+/* CodeMirror Hints (Autocomplete) Styling */
 .CodeMirror-hints {
     background-color: var(--dropdown-bg);
     color: var(--text-color);
     border: 1px solid var(--border-color);
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    font-family: var(--font-editor);
+    font-family: var(--font-editor); /* Match editor font */
     font-size: 0.9em;
-    z-index: 20;
+    z-index: 20; /* Ensure hints are above editor content */
 }
 .CodeMirror-hint {
     color: var(--text-color);
@@ -613,8 +640,130 @@ body.light-theme .CodeMirror-dialog button:focus {
 }
 .CodeMirror-hint-active {
     background-color: var(--accent-color);
-    color: #fff;
+    color: #fff; /* White text on accent bg */
 }
 body.light-theme .CodeMirror-hint-active {
-    color: #ffffff;
+    color: #ffffff; /* Ensure white text on light theme accent */
+}
+
+/* --- Command Palette Styles --- */
+.command-palette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+    display: flex;
+    align-items: flex-start; /* Align palette to the top */
+    justify-content: center;
+    z-index: 1000; /* High z-index to be on top of everything */
+    padding-top: 10vh; /* Push palette down a bit from the top */
+}
+
+.command-palette {
+    background-color: var(--palette-bg);
+    color: var(--text-color);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 600px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--palette-border);
+}
+
+.command-palette input[type="text"] {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.1em;
+    border: none;
+    border-bottom: 1px solid var(--palette-border);
+    background-color: var(--palette-input-bg);
+    color: var(--palette-input-fg);
+    outline: none;
+}
+.command-palette input[type="text"]::placeholder {
+    color: var(--tab-inactive-fg);
+}
+
+
+.command-palette-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 40vh; /* Limit height and make scrollable */
+    overflow-y: auto;
+}
+
+.command-palette-list li {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--palette-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.15s;
+}
+.command-palette-list li:last-child {
+    border-bottom: none;
+}
+
+.command-palette-list li:hover {
+    background-color: var(--palette-item-hover-bg);
+}
+
+.command-palette-list li.selected {
+    background-color: var(--palette-item-selected-bg);
+    color: var(--palette-item-selected-fg);
+}
+.command-palette-list li.selected .command-shortcut {
+    color: var(--palette-item-selected-fg); /* Ensure shortcut color matches on selection */
+    opacity: 0.8;
+}
+
+
+.command-name {
+    font-size: 0.95em;
+}
+
+.command-shortcut {
+    font-size: 0.8em;
+    color: var(--palette-shortcut-fg);
+    background-color: var(--tab-bg); /* Use tab background for shortcut box */
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+body.light-theme .command-shortcut {
+    background-color: var(--sidebar-bg); /* Lighter background for light theme */
+}
+
+
+/* Screen-reader only utility class */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+.filetype-selector-bar {
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+body.light-theme .filetype-selector-bar {
+    background: var(--sidebar-bg);
+    color: var(--text-color);
+    border-bottom: 1px solid #ced4da;
+}
+#filetype-selector {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
 }

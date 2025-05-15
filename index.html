@@ -45,6 +45,8 @@
                 <span id="menu-view-label">View</span>
                 <div class="dropdown-menu" role="menu" aria-labelledby="menu-view-label">
                     <div class="dropdown-item" id="menu-toggle-theme" role="menuitem">Toggle Dark/Light Theme</div>
+                     <div class="dropdown-separator" role="separator"></div>
+                    <div class="dropdown-item" id="menu-command-palette-trigger" role="menuitem">Command Palette... <span class="shortcut">(Ctrl+Shift+P)</span></div>
                 </div>
             </div>
         </div>
@@ -61,9 +63,26 @@
             <div class="resizer" id="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar"></div>
             <div class="main-content">
                 <div class="tab-bar" role="tablist" aria-label="Editor tabs">
-                </div>
+                    </div>
+                <!-- Add just above <div class="editor-area" id="editor-container"... -->
+<div class="filetype-selector-bar" style="display:flex;align-items:center;gap:12px;padding:10px 15px 2px 15px;">
+    <label for="filetype-selector" style="font-size:0.92em;">File Type:</label>
+    <select id="filetype-selector" style="font-size:0.97em;padding:2px 7px;">
+        <option value="text/plain">Text</option>
+        <option value="text/html">HTML</option>
+        <option value="text/css">CSS</option>
+        <option value="text/javascript">JavaScript</option>
+        <option value="application/json">JSON</option>
+        <option value="text/x-python">Python</option>
+        <option value="text/x-java">Java</option>
+        <option value="text/x-c++src">C/C++</option>
+        <option value="application/xml">XML</option>
+        <option value="text/markdown">Markdown</option>
+    </select>
+</div>
+
                 <div class="editor-area" id="editor-container" role="region" aria-label="Code editor panel">
-                </div>
+                    </div>
                 <div class="status-bar">
                      <div class="status-left">
                         <span id="line-col-status" role="status" aria-live="polite">Line: 1, Column: 1</span>
@@ -77,12 +96,21 @@
         </div>
     </div>
 
+    <div id="command-palette-overlay" class="command-palette-overlay" style="display: none;">
+        <div id="command-palette" class="command-palette" role="dialog" aria-modal="true" aria-labelledby="command-palette-label">
+            <label id="command-palette-label" class="sr-only">Command Palette</label> <input type="text" id="command-palette-input" placeholder="Type a command..." aria-label="Type a command" role="combobox" aria-expanded="false" aria-controls="command-palette-list">
+            <ul id="command-palette-list" role="listbox" aria-label="Available commands">
+                </ul>
+        </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/markdown/markdown.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closebrackets.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/selection/active-line.js"></script>

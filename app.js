@@ -19,6 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuReplace = document.getElementById('menu-replace');
     const menuToggleComment = document.getElementById('menu-toggle-comment');
     const menuToggleTheme = document.getElementById('menu-toggle-theme');
+    const menuCommandPaletteTrigger = document.getElementById('menu-command-palette-trigger'); // New
+
+    // --- Command Palette Selectors ---
+    const commandPaletteOverlay = document.getElementById('command-palette-overlay');
+    const commandPaletteEl = document.getElementById('command-palette');
+    const commandPaletteInput = document.getElementById('command-palette-input');
+    const commandPaletteList = document.getElementById('command-palette-list');
 
     let editor;
     let openTabs = {};
@@ -28,11 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let nextTabIdCounter = 1;
     let untitledFileCounter = 1;
     let activeTabId = null;
+    let previouslyFocusedElement = null; // For restoring focus after palette closes
 
     const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
     // --- Local Storage Constants with Prefix ---
-    const LS_PREFIX = 'webEditor_v2.3_'; // Incremented version for linting feature
+    const LS_PREFIX = 'webEditor_v2.4_'; // Incremented version for command palette
     const LS_OPEN_TABS = `${LS_PREFIX}openTabs`;
     const LS_ACTIVE_TAB = `${LS_PREFIX}activeTab`;
     const LS_NEXT_TAB_ID_COUNTER = `${LS_PREFIX}nextTabIdCounter`;
@@ -44,12 +52,82 @@ document.addEventListener('DOMContentLoaded', () => {
     const darkCmTheme = 'material-darker';
     const lightCmTheme = 'default';
 
+
+    // --- Command Definitions ---
+    const commands = [
+        {
+            id: 'newFile',
+            name: 'File: New File',
+            action: () => menuNewFile.click(), // Trigger existing menu item's logic
+            shortcut: isMac ? '⌘N' : 'Ctrl+N'
+        },
+        {
+            id: 'openFile',
+            name: 'File: Open File...',
+            action: () => menuOpenFileSingle.click(),
+            shortcut: isMac ? '⇧⌘O' : 'Ctrl+Shift+O'
+        },
+        {
+            id: 'openFolder',
+            name: 'File: Open Folder...',
+            action: () => menuOpenFolder.click(),
+            shortcut: isMac ? '⌘O' : 'Ctrl+O'
+        },
+        {
+            id: 'saveFile',
+            name: 'File: Save File',
+            action: () => menuSaveFile.click(),
+            shortcut: isMac ? '⌘S' : 'Ctrl+S',
+            condition: () => activeTabId && openTabs[activeTabId] // Only show if a tab is active
+        },
+        {
+            id: 'closeTab',
+            name: 'File: Close Current Tab',
+            action: () => { if (activeTabId) closeTab(activeTabId); },
+            shortcut: isMac ? '⌘W' : 'Ctrl+W',
+            condition: () => activeTabId && openTabs[activeTabId]
+        },
+        {
+            id: 'renameTab',
+            name: 'File: Rename Current Tab...',
+            action: () => { if (activeTabId) promptRenameTab(activeTabId); },
+            shortcut: 'F2',
+            condition: () => activeTabId && openTabs[activeTabId]
+        },
+        {
+            id: 'find',
+            name: 'Edit: Find...',
+            action: () => { if (editor) { editor.focus(); editor.execCommand("findPersistent"); }},
+            shortcut: isMac ? '⌘F' : 'Ctrl+F'
+        },
+        {
+            id: 'replace',
+            name: 'Edit: Replace...',
+            action: () => { if (editor) { editor.focus(); editor.execCommand("replace"); }},
+            shortcut: isMac ? '⌥⌘F' : 'Ctrl+H'
+        },
+        {
+            id: 'toggleComment',
+            name: 'Edit: Toggle Comment',
+            action: () => { if (editor) { editor.focus(); editor.execCommand("toggleComment"); }},
+            shortcut: isMac ? '⌘/' : 'Ctrl+/'
+        },
+        {
+            id: 'toggleTheme',
+            name: 'View: Toggle Dark/Light Theme',
+            action: () => menuToggleTheme.click()
+        },
+        // Add more commands here, e.g., for settings, specific editor actions, etc.
+    ];
+    let filteredCommands = [];
+    let selectedCommandIndex = -1;
+
+
     // --- Update Shortcut Text ---
-    // ... (Function remains the same as previous version) ...
     function updateShortcutText() {
         const modKeyText = isMac ? '⌘' : 'Ctrl';
-        const altKeyText = isMac ? '⌥' : 'Alt';
-        const shiftKeyText = 'Shift';
+        const altKeyText = isMac ? '⌥' : 'Alt'; // Option key on Mac
+        const shiftKeyText = 'Shift'; // '⇧' is also an option for Mac
 
         document.querySelectorAll('.shortcut').forEach(span => {
             let text = span.textContent || "";
@@ -58,10 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
             text = text.replace(/Ctrl\+/g, `${modKeyText}+`);
             text = text.replace(/Cmd\+/g, `${modKeyText}+`);
             text = text.replace(/Alt\+/g, `${altKeyText}+`);
-            text = text.replace(/Opt\+/g, `${altKeyText}+`);
+            text = text.replace(/Opt\+/g, `${altKeyText}+`); // For Cmd+Opt+F
             span.textContent = text;
         });
 
+        // Specific updates for menu items if their text is hardcoded differently
         const menuReplaceItem = document.getElementById('menu-replace');
         if (menuReplaceItem) {
             const shortcutSpan = menuReplaceItem.querySelector('.shortcut');
@@ -76,11 +155,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 shortcutSpan.textContent = `(${modKeyText}+/)`;
              }
         }
+        // Update Command Palette trigger shortcut in menu
+        const menuCommandPaletteTriggerItem = document.getElementById('menu-command-palette-trigger');
+        if (menuCommandPaletteTriggerItem) {
+            const shortcutSpan = menuCommandPaletteTriggerItem.querySelector('.shortcut');
+            if (shortcutSpan) {
+                 shortcutSpan.textContent = isMac ? `(${modKeyText}⇧P)` : `(${modKeyText}+Shift+P)`;
+            }
+        }
     }
 
 
     // --- Theme Management ---
-    // ... (Function remains the same as previous version) ...
     function applyTheme(theme) {
         if (theme === 'light') {
             document.body.classList.add('light-theme');
@@ -93,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Sidebar Resizing Logic ---
-    // ... (Logic remains the same as previous version) ...
     const DEFAULT_SIDEBAR_WIDTH = 250;
     const MIN_SIDEBAR_WIDTH = 150;
     let MAX_SIDEBAR_WIDTH = Math.min(500, window.innerWidth > 400 ? window.innerWidth - 200 : 250);
@@ -107,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         calculateMaxSidebarWidth();
         const newWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(width, MAX_SIDEBAR_WIDTH));
         if (sidebar) sidebar.style.width = `${newWidth}px`;
-        if (editor) editor.refresh();
+        if (editor) editor.refresh(); // Refresh CodeMirror after sidebar resize
     }
 
     function loadSidebarWidth() {
@@ -122,8 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
             isResizing = true;
             startX = e.clientX;
             startWidth = parseInt(document.defaultView.getComputedStyle(sidebar).width, 10);
-            document.body.style.userSelect = 'none';
-            document.body.style.pointerEvents = 'none';
+            document.body.style.userSelect = 'none'; // Prevent text selection during resize
+            document.body.style.pointerEvents = 'none'; // Prevent interaction with other elements during resize
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
         });
@@ -136,14 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
             isResizing = false;
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
-            document.body.style.userSelect = '';
+            document.body.style.userSelect = ''; // Re-enable text selection
             document.body.style.pointerEvents = '';
             if (sidebar) localStorage.setItem(LS_SIDEBAR_WIDTH, sidebar.style.width);
         }
     }
 
     // --- Local Storage Functions ---
-    // ... (Functions remain the same as previous version) ...
     function saveEditorStateToLocalStorage() {
         const tabsToSave = {};
         for (const id in openTabs) {
@@ -191,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 untitledFileCounter = parseInt(savedUntitledCounter, 10);
                 if (isNaN(untitledFileCounter) || untitledFileCounter < 1) {
                     untitledFileCounter = 1;
-                    Object.values(openTabs).forEach(t => {
+                     Object.values(openTabs).forEach(t => {
                         if (t.filename && t.filename.startsWith("untitled-")) {
                             const n = parseInt(t.filename.replace("untitled-", "").split('.')[0], 10);
                             if (!isNaN(n) && n >= untitledFileCounter) untitledFileCounter = n + 1;
@@ -200,8 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 activeTabId = savedActiveTab || null;
                 if (savedExpandedFolders) expandedFolders = new Set(JSON.parse(savedExpandedFolders));
+
             } catch (e) {
-                console.error("Error parsing LS: ", e);
+                console.error("Error parsing editor state from LocalStorage:", e);
                 Object.keys(localStorage).forEach(key => { if (key.startsWith(LS_PREFIX)) localStorage.removeItem(key); });
                 openTabs = {}; activeTabId = null; nextTabIdCounter = 1; untitledFileCounter = 1; expandedFolders = new Set();
                 stateLoaded = false;
@@ -227,8 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 styleActiveLine: true,
                 lineWrapping: true,
                 foldGutter: true,
-                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "CodeMirror-lint-markers"], // Added lint markers gutter
-                lint: true, // Enabled linting
+                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "CodeMirror-lint-markers"],
+                lint: true,
                 extraKeys: {
                     "Ctrl-Space": "autocomplete", "Cmd-Space": "autocomplete",
                     "Ctrl-/": "toggleComment", "Cmd-/": "toggleComment",
@@ -247,6 +332,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderTabs();
                 }
             });
+
+            if (editor) {
+                editor.on("paste", (cm, event) => {
+                    setTimeout(() => {
+                        const content = cm.getValue();
+                        const detected = detectFileTypeByContent(content);
+                        if (detected && detected.mode) {
+                            cm.setOption("mode", detected.mode);
+                            if (languageStatus) languageStatus.textContent = detected.label;
+                            if (activeTabId && openTabs[activeTabId]) {
+                                openTabs[activeTabId].filetype = detected.label;
+                                // Consider if filename should be updated for untitled files based on detected type
+                            }
+                        }
+                    }, 0);
+                });
+            }
+
         } catch (e) {
             console.error("Error during CodeMirror initialization:", e);
             editorContainer.textContent = "Failed to load code editor. Check console for errors.";
@@ -254,15 +357,48 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error("Editor container (#editor-container) not found in the DOM!");
     }
+const filetypeSelector = document.getElementById('filetype-selector');
+if (filetypeSelector && editor) {
+    // Change mode on dropdown selection
+    filetypeSelector.addEventListener('change', function () {
+        const selectedMode = filetypeSelector.value;
+        editor.setOption('mode', selectedMode);
+        // Update openTabs if tab exists
+        if (activeTabId && openTabs[activeTabId]) {
+            openTabs[activeTabId].filetype = filetypeSelector.options[filetypeSelector.selectedIndex].text;
+        }
+        // Update the status bar
+        if (languageStatus) languageStatus.textContent = filetypeSelector.options[filetypeSelector.selectedIndex].text;
+    });
+
+    // Set dropdown when switching tab
+    function updateFiletypeDropdownFromTab(tabId) {
+        if (tabId && openTabs[tabId]) {
+            let mode = getMimeType(openTabs[tabId].filetype || openTabs[tabId].filename);
+            filetypeSelector.value = mode;
+        } else {
+            filetypeSelector.value = "text/plain";
+        }
+    }
+
+    // Patch your switchToTab to call the update function
+    const origSwitchToTab = switchToTab;
+    switchToTab = function(tabId) {
+        origSwitchToTab(tabId);
+        updateFiletypeDropdownFromTab(tabId);
+    };
+
+    // Also set the dropdown for the initial load
+    updateFiletypeDropdownFromTab(activeTabId);
+}
 
     // --- Helper Functions ---
-    // ... (getMimeType and getDisplayFileType remain the same) ...
     function getMimeType(filetypeOrFilename) {
         if (!filetypeOrFilename) return "text/plain";
         let ext = filetypeOrFilename.includes('.') ? filetypeOrFilename.split('.').pop().toLowerCase() : filetypeOrFilename.toLowerCase();
         switch (ext) {
             case "js": case "javascript": return "text/javascript";
-            case "json": return "application/json"; // For JSON linting if added
+            case "json": return "application/json";
             case "html": return "text/html";
             case "css": return "text/css";
             case "xml": return "application/xml";
@@ -293,8 +429,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function detectFileTypeByContent(content) {
+        content = content.trim();
+        // CSS check should be more specific and potentially earlier if JS var() conflicts
+        if (/^\s*@import\s+|{|}\s*$|^\s*\.[a-zA-Z0-9_-]+\s*\{|^\s*#[a-zA-Z0-9_-]+\s*\{|^\s*[a-zA-Z0-9_-]+\s*\{|--[a-zA-Z0-9_-]+:/.test(content)) {
+             return { mode: "text/css", label: "CSS" };
+        }
+        if (/^\s*<!DOCTYPE\s+html/i.test(content) || /<html[\s>]/i.test(content)) {
+            return { mode: "text/html", label: "HTML" };
+        }
+        if (/^\s*\{[\s\S]*\}$/.test(content) && content.includes(':')) {
+            try { JSON.parse(content); return { mode: "application/json", label: "JSON" }; } catch(e){}
+        }
+        // Refined JS check to be less greedy with `var`
+        if (/^\s*\/\//.test(content) || /^\s*function\b|\b(const|let)\b\s+[a-zA-Z_$][\w$]*\s*=/.test(content) || /\b(document|window|console)\./.test(content)) {
+            return { mode: "text/javascript", label: "JavaScript" };
+        }
+        if (/^\s*#include\b|int\s+main\s*\(/.test(content)) {
+            return { mode: "text/x-c++src", label: "C/C++" };
+        }
+        if (/^\s*def\b|\bimport\b|\bprint\s*\(|^\s*#/m.test(content) && !content.includes("include")) { // Avoid conflict with C++ #include
+            return { mode: "text/x-python", label: "Python" };
+        }
+        if (/^\s*<\?xml/.test(content)) {
+            return { mode: "application/xml", label: "XML" };
+        }
+        if (/^\s*#\s+.+$|^\s*\*\s+.+$|^\s*---$|^\s*[*-] /.m.test(content)) {
+            return { mode: "text/markdown", label: "Markdown" };
+        }
+        // Fallback JS check for simple `var x = ...` if other specific checks fail
+        if (/\bvar\b\s+[a-zA-Z_$][\w$]*\s*=/.test(content)) {
+             return { mode: "text/javascript", label: "JavaScript" };
+        }
+        return { mode: "text/plain", label: "Text" };
+    }
+
+
     // --- Project Explorer Rendering ---
-    // ... (Function remains the same as previous version) ...
     function renderProjectExplorer() {
         if (!projectExplorerContainer) return;
         projectExplorerContainer.innerHTML = '';
@@ -359,8 +530,6 @@ document.addEventListener('DOMContentLoaded', () => {
         projectExplorerContainer.appendChild(rootUl);
     }
 
-    // --- Toggle Folder in Explorer ---
-    // ... (Function remains the same as previous version) ...
     function toggleFolder(path, listItemElement) {
         if (expandedFolders.has(path)) expandedFolders.delete(path);
         else expandedFolders.add(path);
@@ -369,8 +538,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveEditorStateToLocalStorage();
     }
 
-    // --- Open File from Explorer ---
-    // ... (Function remains the same as previous version) ...
     async function openFileFromExplorer(fileItem) {
         const filePath = fileItem.path;
         const existingTab = Object.values(openTabs).find(tab => tab.filePath === filePath);
@@ -383,8 +550,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else { console.warn("File object missing for:", filePath); alert(`Cannot open: ${fileItem.name}`); }
     }
 
-    // --- Read File Content ---
-    // ... (Function remains the same as previous version) ...
     function readFileContent(fileObject) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -395,7 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- UI Rendering for Tabs ---
-    // ... (Function remains the same as previous version, ensure CSS.escape for querySelector) ...
     function renderTabs() {
         if (!tabContainer) return;
         tabContainer.innerHTML = '';
@@ -453,15 +617,11 @@ document.addEventListener('DOMContentLoaded', () => {
         saveEditorStateToLocalStorage();
     }
 
-
-    // --- Update Editor Area Indicator ---
-    // ... (Function remains the same as previous version) ...
     function updateEditorAreaIndicator(hasActiveTab) {
         if(editorArea) editorArea.classList.toggle('active-tab-indicator', hasActiveTab);
     }
 
     // --- Core File/Tab Operations ---
-    // ... (createNewUntitledFile, promptRenameTab, openNewTab, switchToTab, closeTab remain the same) ...
     function createNewUntitledFile() {
         const filename = `untitled-${untitledFileCounter++}.txt`;
         openNewTab(filename, getDisplayFileType(filename), "", false, null, false, true, `untitled://${filename}`, null);
@@ -495,7 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openNewTab(filename, filetype, content = '', isDirty = false, existingId = null, isFromLocalFile = false, isUntitled = false, filePath = null, fileObject = null) {
         const newId = existingId || `tab-${nextTabIdCounter++}`;
         openTabs[newId] = { id: newId, filename, filetype, content, isDirty, isFromLocalFile, isUntitled, filePath, fileObject };
-        switchToTab(newId); // This will set the editor mode and trigger linting if the mode has a linter
+        switchToTab(newId);
         return newId;
     }
 
@@ -510,7 +670,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeTabId && openTabs[activeTabId] && editor) {
             editor.setValue(openTabs[activeTabId].content);
             const mimeType = getMimeType(openTabs[activeTabId].filetype || openTabs[activeTabId].filename);
-            editor.setOption("mode", mimeType); // This will trigger a re-lint if mode changes
+            editor.setOption("mode", mimeType);
             editor.clearHistory();
             editor.focus();
             if (languageStatus) languageStatus.textContent = getDisplayFileType(openTabs[activeTabId].filetype || openTabs[activeTabId].filename);
@@ -559,9 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-
     // --- Event Listeners for Tab Bar ---
-    // ... (Remains the same) ...
     if (tabContainer) {
         tabContainer.addEventListener('click', (e) => {
             const clickedTabElement = e.target.closest('.tab');
@@ -572,7 +730,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Status Bar Update ---
-    // ... (Remains the same) ...
     function updateStatusBar() {
         if (!editor || !lineColStatus) return;
         const cur = editor.getCursor();
@@ -580,7 +737,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Menu Item Event Listeners ---
-    // ... (All menu item listeners remain the same, including file input setup) ...
     if (menuNewFile) menuNewFile.addEventListener('click', createNewUntitledFile);
     if (menuOpenFileSingle) {
         menuOpenFileSingle.addEventListener('click', () => {
@@ -602,7 +758,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (menuSaveFile) menuSaveFile.addEventListener('click', () => {
         if (!activeTabId || !openTabs[activeTabId]) {
-            alert("No active file to save!");
+            // alert("No active file to save!"); // Consider less intrusive notification
+            console.warn("Save action triggered with no active file.");
             return;
         }
         const tabData = openTabs[activeTabId];
@@ -646,9 +803,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentGlobalTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
         applyTheme(currentGlobalTheme === 'light' ? 'dark' : 'light');
     });
+    if (menuCommandPaletteTrigger) menuCommandPaletteTrigger.addEventListener('click', openCommandPalette);
+
 
     // --- File Input Handling ---
-    // ... (Remains the same) ...
     if (fileInput) {
         fileInput.addEventListener('change', async (e) => {
             const files = e.target.files;
@@ -705,7 +863,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Dropdown Menu Toggle Logic & ARIA ---
-    // ... (Remains the same) ...
     document.querySelectorAll('.menu-item[role="button"]').forEach(menuButton => {
         menuButton.addEventListener('click', function(event) {
             const dropdownItemClicked = event.target.closest('.dropdown-item[role="menuitem"]');
@@ -714,15 +871,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeItem.classList.remove('active');
                     activeItem.setAttribute('aria-expanded', 'false');
                 });
-                return;
+                // Allow the click on dropdown item to proceed (e.g. openCommandPalette)
+                // return; // No, don't return here, let the item's own listener fire.
             }
-            const isCurrentlyExpanded = this.getAttribute('aria-expanded') === 'true';
-            document.querySelectorAll('.menu-item[aria-expanded="true"]').forEach(otherItem => {
-                if (otherItem !== this) { otherItem.classList.remove('active'); otherItem.setAttribute('aria-expanded', 'false'); }
-            });
-            this.classList.toggle('active', !isCurrentlyExpanded);
-            this.setAttribute('aria-expanded', String(!isCurrentlyExpanded));
-            event.stopPropagation();
+            // If the click was on the menu button itself (not a dropdown item)
+            if (event.target === this || event.target.parentElement === this) {
+                const isCurrentlyExpanded = this.getAttribute('aria-expanded') === 'true';
+                document.querySelectorAll('.menu-item[aria-expanded="true"]').forEach(otherItem => {
+                    if (otherItem !== this) { otherItem.classList.remove('active'); otherItem.setAttribute('aria-expanded', 'false'); }
+                });
+                this.classList.toggle('active', !isCurrentlyExpanded);
+                this.setAttribute('aria-expanded', String(!isCurrentlyExpanded));
+                event.stopPropagation();
+            }
         });
     });
     document.addEventListener('click', function(event) {
@@ -734,6 +895,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
+            // Close command palette first if open
+            if (commandPaletteOverlay && commandPaletteOverlay.style.display !== 'none') {
+                closeCommandPalette();
+                return; // Prevent closing menu if palette was closed
+            }
+            // Then close menus
             let activeMenu = null;
             document.querySelectorAll('.menu-item[aria-expanded="true"]').forEach(item => {
                 item.classList.remove('active'); item.setAttribute('aria-expanded', 'false'); activeMenu = item;
@@ -746,11 +913,168 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Command Palette Logic ---
+    function openCommandPalette() {
+        if (!commandPaletteOverlay || !commandPaletteInput || !commandPaletteList) return;
+        previouslyFocusedElement = document.activeElement; // Store focus
+        commandPaletteInput.value = ''; // Clear previous input
+        renderCommandList(commands.filter(cmd => !cmd.condition || cmd.condition())); // Show all applicable commands
+        commandPaletteOverlay.style.display = 'flex';
+        commandPaletteInput.focus();
+        commandPaletteInput.setAttribute('aria-expanded', 'true');
+        selectedCommandIndex = -1; // Reset selection
+    }
+
+    function closeCommandPalette() {
+        if (!commandPaletteOverlay || !commandPaletteInput) return;
+        commandPaletteOverlay.style.display = 'none';
+        commandPaletteInput.setAttribute('aria-expanded', 'false');
+        if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+            previouslyFocusedElement.focus(); // Restore focus
+        } else if (editor) {
+            editor.focus(); // Fallback to editor
+        }
+    }
+
+    function renderCommandList(commandsToRender) {
+        if (!commandPaletteList) return;
+        commandPaletteList.innerHTML = ''; // Clear current list
+        filteredCommands = commandsToRender; // Store the currently displayed commands
+        selectedCommandIndex = -1; // Reset selection
+
+        if (commandsToRender.length === 0) {
+            const li = document.createElement('li');
+            li.textContent = 'No commands found.';
+            li.style.justifyContent = 'center'; // Center the text
+            li.style.cursor = 'default';
+            commandPaletteList.appendChild(li);
+            return;
+        }
+
+        commandsToRender.forEach((command, index) => {
+            const li = document.createElement('li');
+            li.dataset.commandId = command.id;
+            li.setAttribute('role', 'option');
+            li.tabIndex = -1; // Make items focusable programmatically
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'command-name';
+            nameSpan.textContent = command.name;
+            li.appendChild(nameSpan);
+
+            if (command.shortcut) {
+                const shortcutSpan = document.createElement('span');
+                shortcutSpan.className = 'command-shortcut';
+                shortcutSpan.textContent = command.shortcut;
+                li.appendChild(shortcutSpan);
+            }
+
+            li.addEventListener('click', () => {
+                executeCommand(command);
+            });
+            li.addEventListener('mouseenter', () => {
+                updateSelectedCommand(index);
+            });
+            commandPaletteList.appendChild(li);
+        });
+        updateSelectedVisuals();
+    }
+
+    function updateSelectedCommand(newIndex) {
+        selectedCommandIndex = newIndex;
+        updateSelectedVisuals();
+    }
+
+    function updateSelectedVisuals() {
+        const items = commandPaletteList.querySelectorAll('li');
+        items.forEach((item, idx) => {
+            if (idx === selectedCommandIndex) {
+                item.classList.add('selected');
+                item.setAttribute('aria-selected', 'true');
+                item.scrollIntoView({ block: 'nearest', inline: 'nearest' }); // Keep selected item in view
+            } else {
+                item.classList.remove('selected');
+                item.setAttribute('aria-selected', 'false');
+            }
+        });
+    }
+
+
+    function executeCommand(command) {
+        if (command && typeof command.action === 'function') {
+            command.action();
+        }
+        closeCommandPalette();
+    }
+
+    if (commandPaletteInput) {
+        commandPaletteInput.addEventListener('input', () => {
+            const searchTerm = commandPaletteInput.value.toLowerCase();
+            const matchingCommands = commands.filter(command => {
+                const conditionMet = !command.condition || command.condition();
+                return conditionMet && command.name.toLowerCase().includes(searchTerm);
+            });
+            renderCommandList(matchingCommands);
+        });
+
+        commandPaletteInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeCommandPalette();
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (filteredCommands.length > 0) {
+                    selectedCommandIndex = (selectedCommandIndex + 1) % filteredCommands.length;
+                    updateSelectedVisuals();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (filteredCommands.length > 0) {
+                    selectedCommandIndex = (selectedCommandIndex - 1 + filteredCommands.length) % filteredCommands.length;
+                    updateSelectedVisuals();
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedCommandIndex >= 0 && selectedCommandIndex < filteredCommands.length) {
+                    executeCommand(filteredCommands[selectedCommandIndex]);
+                } else if (filteredCommands.length === 1) { // If only one result, Enter executes it
+                    executeCommand(filteredCommands[0]);
+                }
+            }
+        });
+    }
+    if (commandPaletteOverlay) {
+        commandPaletteOverlay.addEventListener('click', (e) => {
+            if (e.target === commandPaletteOverlay) { // Click on overlay itself, not children
+                closeCommandPalette();
+            }
+        });
+    }
+
+
     // --- Keyboard Shortcuts ---
-    // ... (Remains the same) ...
     document.addEventListener('keydown', function(e) {
         const modKey = isMac ? e.metaKey : e.ctrlKey;
         const shiftKey = e.shiftKey;
+
+        // Command Palette Shortcut
+        if (modKey && shiftKey && e.key.toUpperCase() === 'P') {
+            e.preventDefault();
+            if (commandPaletteOverlay.style.display === 'none') {
+                openCommandPalette();
+            } else {
+                closeCommandPalette();
+            }
+            return; // Prevent other shortcuts if palette is toggled
+        }
+
+        // If command palette is open, let its own handlers manage keys
+        if (commandPaletteOverlay && commandPaletteOverlay.style.display !== 'none') {
+            // Allow Escape to be handled by the palette's input listener or global Esc listener
+            // Other keys like arrows/enter are handled by palette input
+            return;
+        }
+
 
         const activeElement = document.activeElement;
         const inCodeMirrorDialog = activeElement && activeElement.closest('.CodeMirror-dialog');
@@ -778,7 +1102,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Graceful Unload ---
-    // ... (Remains the same) ...
     window.addEventListener('beforeunload', (event) => {
         if (activeTabId && openTabs[activeTabId] && editor) {
             openTabs[activeTabId].content = editor.getValue();
@@ -792,7 +1115,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
-    // ... (Remains the same) ...
     updateShortcutText();
     loadSidebarWidth();
     const stateLoaded = loadEditorStateFromLocalStorage();
